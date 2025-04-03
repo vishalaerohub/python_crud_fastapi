@@ -4,5 +4,5 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="Pass@123",
-        database="fast_api_db"
+        database="master_sirium"
     )

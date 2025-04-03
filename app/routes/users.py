@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from models import User
-from db import get_db_connection
-from pydantic import BaseModel
+from app.models import User
+from app.db import get_db_connection
+# from pydantic import BaseModel
 import mysql.connector
 
 router = APIRouter()
