@@ -244,7 +244,7 @@ def syncAdvertisement():
                 output.append({
                     "ad_id": ad_id,
                     "message": f"Failed to sync ad '{item['name']}'",
-                    "error": str(db_err)
+                    "status": "true"
                 })
                 
         db.commit()
@@ -275,6 +275,7 @@ def syncMagazine_router():
     songs = response_data["data"]
     db = get_db_connection()
     cursor = db.cursor()
+    output = []
 
     for song in songs:
         song_id = song["id"]
@@ -320,6 +321,12 @@ def syncMagazine_router():
                     song["playlist_id"], is_deleted, song["position"],
                     song["start_date"], song["end_date"], created_at, updated_at
                 ))
+                output.append({
+                    "song_id": song['id'],
+                    "message": f"'{song['title']}' has been synced.",
+                    "status": "true",
+                    "code": "200"
+                })
 
         except Exception as e:
             traceback.print_exc()
@@ -329,8 +336,4 @@ def syncMagazine_router():
     db.commit()
     db.close()
 
-    return {
-        "message": "Songs have been updated successfully",
-        "status": "true",
-        "code": "200"
-    }
+    return output
