@@ -6,6 +6,7 @@ import shutil
 import traceback
 
 import logging
+from datetime import datetime
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -157,4 +158,112 @@ def syncData():
         "data":"looking goooddd mannn..."
     }
 
+@router.get("/syncAdvertisement")
+def syncAdvertisement():
+    API_URL = apiEndPointBaseUrl + "syncAdvertisement"
+    try:
+        response = requests.get(API_URL, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        response_data = response.json()
+    except requests.RequestException as e:
+        logger.error(f"❌ API request failed: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+
+    if not response_data.get("data"):
+        raise HTTPException(status_code=404, detail="Data is not available")
+    
+    if response_data.get("status") != 1:
+        return {
+            "data": "Data not available",
+            "status": "false",
+            "code": 404
+        }
+    output = []
+    db = get_db_connection()
+    
+    # return response_data["data"]
+    try:
+        cursor = db.cursor()
+        
+        for item in response_data["data"]:
+            created_at = parse_date(item['createdAt'])
+            updated_at = parse_date(item['updatedAt'])
+            ad_id = item["id"]
+            ad_data = (
+                item.get("id"),
+                item.get('name') or '',
+                item.get('advertise_type') or '',
+                item.get('url') or '',
+                item.get('desktop_url') or '',
+                item.get('ad_clicksection') or '',
+                item.get('ad_clickid') or '',
+                str(item.get('status') or '0'),
+                item.get('size') or '',
+                item.get('content_type') or '',
+                item.get('is_skip') or 0,
+                item.get('skiptimein_second') or 0,
+                item.get('file_format') or '',
+                created_at,
+                updated_at
+            )
+            try:
+                cursor.execute("""
+                    INSERT INTO advertisements (
+                        adv_id,name, advertise_type, url, desktop_url, ad_clicksection, ad_clickid, status, size, content_type, is_skip, skip_timein_second, file_format, created_at, updated_at
+                    ) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        name=VALUES(name),
+                        advertise_type=VALUES(advertise_type),
+                        url=VALUES(url),
+                        desktop_url=VALUES(desktop_url),
+                        ad_clicksection=VALUES(ad_clicksection),
+                        ad_clickid=VALUES(ad_clickid),
+                        status=VALUES(status),
+                        size=VALUES(size),
+                        content_type=VALUES(content_type),
+                        is_skip=VALUES(is_skip),
+                        skip_timein_second=VALUES(skip_timein_second),
+                        file_format=VALUES(file_format),
+                        created_at=VALUES(created_at),
+                        updated_at=VALUES(updated_at)
+                """, ad_data)
+                
+                output.append({
+                    "ad_id" : item['id'],
+                    "message": f"Ad '{item['name']}' synced"
+                })
+            except Exception as db_err:
+                logger.error(f"❌ SQL error for ad ID {ad_id}: {db_err}")
+                traceback.print_exc()
+                output.append({
+                    "ad_id": ad_id,
+                    "message": f"Failed to sync ad '{item['name']}'",
+                    "error": str(db_err)
+                })
+                
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.critical("❌ DB error during ad sync", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to sync advertisements")
+    finally:
+        db.close()
+        
+    return output
+
+
+def parse_date(date_str):
+    if date_str:
+        try:
+            dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.000Z')
+            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            print(f"❌ Date parse error: {e}")
+            return None
+    return None
+    
+    
+    
+    
 
