@@ -6,6 +6,7 @@ import shutil
 import traceback
 import logging
 from app.utils.dateParse import parse_date
+from app.utils.downloader import downloadAndSaveFile
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -189,6 +190,15 @@ def syncAdvertisement():
             created_at = parse_date(item['createdAt'])
             updated_at = parse_date(item['updatedAt'])
             ad_id = item["id"]
+            url = item['url']
+            
+            if item['advertise_type'] == 'Carousel':
+                downloadAndSaveFile(item['desktop_url'], 'desktop_carousels')
+                
+                downloadAndSaveFile(item['url'], 'mobile_carousels')
+            else:
+                downloadAndSaveFile(url, 'videos')
+                
             ad_data = (
                 item.get("id"),
                 item.get('name') or '',
@@ -249,9 +259,5 @@ def syncAdvertisement():
     finally:
         db.close()
         
-    return output
-    
-    
-    
-    
+    return output   
 
