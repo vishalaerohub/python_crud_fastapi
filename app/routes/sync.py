@@ -27,7 +27,7 @@ def safe_remove(path: str):
         traceback.print_exc()
 
 @router.get("/syncMovies")
-def syncMovies():
+async def syncMovies():
     API_URL = apiEndPointBaseUrl + "syncMovies"
 
     try:
@@ -150,3 +150,11 @@ def syncMovies():
         logger.info("🔒 Database connection closed.")
 
     return output
+
+@router.get("/syncData")
+def syncData():
+    return {
+        "data":"looking goooddd mannn..."
+    }
+
+
