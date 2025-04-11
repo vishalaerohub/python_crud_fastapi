@@ -257,6 +257,73 @@ def syncAdvertisement():
         
     return output   
 
+@router.get("/sync-music-playlists")
+def syncMusicsPlaylist():
+    API_URL = apiEndPointBaseUrl + "syncMusicsPlaylist"
+    try:
+        response = requests.get(API_URL, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        response_data = response.json()
+    except requests.RequestException as e:
+        logger.error(f"❌ API request failed: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+
+    if not response_data.get("data"):
+        raise HTTPException(status_code=404, detail="Data is not available")
+    
+    playlists = response_data["data"]
+    # return playlists
+    db = get_db_connection()
+    cursor = db.cursor()
+    output = []
+    
+    for playlist in playlists:
+        playlist_id = playlist["id"]
+        
+        try:
+            created_at = parse_date(playlist['createdAt'])
+            updated_at = parse_date(playlist['updatedAt'])
+            status = str(playlist["status"])
+            playlist_data = (
+                playlist["id"],
+                playlist["id"],
+                playlist["title"],
+                playlist["lang"],
+                playlist["description"],
+                playlist["genres"],
+                playlist["cover_path"],
+                playlist["Highlight"],
+                status,
+                created_at,
+                updated_at,
+            )
+            
+            cursor.execute("""
+                INSERT INTO playlists (id, id2, title, lang, description, genres, cover_path, Highlight, active, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                
+                ON DUPLICATE KEY UPDATE
+                id=VALUES(id),id2=VALUES(id),title=VALUES(title),lang=VALUES(lang),description=VALUES(description),genres=VALUES(genres),cover_path=VALUES(cover_path),Highlight=VALUES(Highlight),active=VALUES(active),created_at=VALUES(created_at),updated_at=VALUES(updated_at)
+            """, playlist_data)
+            
+            output.append({
+                    "song_id": playlist['id'],
+                    "message": f"'{playlist['title']}' has been synced.",
+                    "status": "true",
+                    "code": "200"
+            })
+             
+        except Exception as e:
+            traceback.print_exc()
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Error syncing song ID {playlist_id}: {str(e)}")
+            
+        
+    db.commit()
+    db.close()
+
+    return output
+        
 @router.get("/sync-music")
 def syncMagazine_router():
     API_URL = apiEndPointBaseUrl + "syncMusics"
@@ -308,13 +375,13 @@ def syncMagazine_router():
                         %s, %s, %s, %s, %s,
                         %s, %s, %s, %s
                     )
-                    ON DUPLICATE KEY UPDATE
-                        partner_id=VALUES(partner_id), title=VALUES(title), genres=VALUES(genres),
-                        album=VALUES(album), year=VALUES(year), category=VALUES(category),
-                        artist=VALUES(artist), status=VALUES(status), song_path=VALUES(song_path),
-                        cover_path=VALUES(cover_path), playlist_id=VALUES(playlist_id), is_deleted=VALUES(is_deleted),
-                        position=VALUES(position), start_date=VALUES(start_date), end_date=VALUES(end_date),
-                        created_at=VALUES(created_at), updated_at=VALUES(updated_at)
+                    # ON DUPLICATE KEY UPDATE
+                    #     partner_id=VALUES(partner_id), title=VALUES(title), genres=VALUES(genres),
+                    #     album=VALUES(album), year=VALUES(year), category=VALUES(category),
+                    #     artist=VALUES(artist), status=VALUES(status), song_path=VALUES(song_path),
+                    #     cover_path=VALUES(cover_path), playlist_id=VALUES(playlist_id), is_deleted=VALUES(is_deleted),
+                    #     position=VALUES(position), start_date=VALUES(start_date), end_date=VALUES(end_date),
+                    #     created_at=VALUES(created_at), updated_at=VALUES(updated_at)
                 """, (
                     song_id, song["partner_id"], song["title"], song["genres"], song["album"], song["year"],
                     song["category"], song["artist"], str(song["status"]), song["song_path"], song["cover_path"],
