@@ -39,11 +39,10 @@ def syncMagazine():
 
     output = []
     db = get_db_connection()
-
     try:
         cursor = db.cursor()
         for item in response_data["data"]:
-            if item["status"] == "1":
+            if item["status"] == 1:
                 if item.get("path"):
                     saved_path = downloadAndSaveFile(item["path"], "magazines")
                     logger.info(f"PDF saved at: {saved_path}")
