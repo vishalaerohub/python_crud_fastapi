@@ -3,6 +3,8 @@ from app.db import get_db_connection
 from app.routes.users import router as users_router
 from app.routes.sync import router as sync_router
 from app.routes.synctvshows import router as synctvshows_router 
+from app.routes.sync_magazine import router as syncMagazine_router
+
 
 app = FastAPI()
 

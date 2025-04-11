@@ -1,17 +1,17 @@
+# Inside your FastAPI router
+
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
+from app.utils.downloader import downloadAndSaveFile
 import requests
-import os
 import traceback
 import logging
-from app.utils.downloader import downloadAndSaveFile
 
 router = APIRouter()
 
 apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
 HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -44,10 +44,13 @@ def syncMagazine():
         cursor = db.cursor()
         for item in response_data["data"]:
             if item["status"] == "1":
-                if item["path"] != '':
-                    downloadAndSaveFile(item["path"], "magazines")
-                if item["thumbnail"] != '':
-                    downloadAndSaveFile(item["thumbnail"], "magazine_thumbnails")
+                if item.get("path"):
+                    saved_path = downloadAndSaveFile(item["path"], "magazines")
+                    logger.info(f"PDF saved at: {saved_path}")
+                if item.get("thumbnail"):
+                    saved_thumb = downloadAndSaveFile(item["thumbnail"], "magazine_thumbnails")
+                    logger.info(f"Thumbnail saved at: {saved_thumb}")
+
             magazine_data = (
                 item["id"],
                 item["name"],
@@ -74,10 +77,6 @@ def syncMagazine():
                     size=VALUES(size),
                     file_format=VALUES(file_format)
             """, magazine_data)
-
-            logger.info(f"📘 Synced magazine ID {item['id']} - {item['name']}")
-
-            
 
             output.append({
                 "magazine_id": item["id"],
