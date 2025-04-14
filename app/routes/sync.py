@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json
@@ -405,19 +406,22 @@ def syncMagazine_router():
     return output
 
 @router.get('/syncAnalytics')
-async def syncAnalytics():
+def syncAnalytics():
+    return get_device_id()
     batch_size = 100
     total_records_processed = 0
     total_batches_processed = 0
     successful_batches = 0
     failed_batches = 0
     
-    API_URL = apiEndPointBaseUrl + "saveanalytics"
-
+    # API_URL = apiEndPointBaseUrl + "saveanalytics"
+    API_URL = "https://ifeanalytics-api.aerohub.aero/api/device/saveanalytics"
+    
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    while True:
+    # while True:
+    try:
         cursor.execute(f"""
             SELECT 
                 id, name, event, subject, ip, description, created_at, 
@@ -428,42 +432,52 @@ async def syncAnalytics():
             LIMIT {batch_size}
         """)
         analytics_res = cursor.fetchall()
-
+        
         if not analytics_res:
-            break
+            return {"message": "No new analytics for you"}
 
+        # ADD DEVICE ID TO EACH RECORD
         for record in analytics_res:
             record["device_id"] = get_device_id()
+            
+            # if isinstance(record.get("created_at"), datetime):
+            record["created_at"] = record["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+        
+        # return analytics_res
+        
+        # send to external api
+        response = requests.post(API_URL, headers=HEADERS, json=analytics_res, timeout=100)
+        if response.status_code == 200:
+            successful_batches += 1
+            total_batches_processed += 1
+            total_records_processed += len(analytics_res)
 
-        try:
-            response = requests.post(API_URL, json=analytics_res, headers=HEADERS, timeout=10)
-            if response.status_code == 200:
-                ids_to_delete = [str(r["id"]) for r in analytics_res]
-                id_string = ",".join(ids_to_delete)
-                cursor.execute(f"DELETE FROM analytics WHERE id IN ({id_string})")
-                db.commit()
-                successful_batches += 1
-            else:
-                failed_batches += 1
-        except Exception as e:
-            db.rollback()
+            # Optionally mark records as synced (status = 1)
+            ids = tuple(record["id"] for record in analytics_res)
+            format_strings = ','.join(['%s'] * len(ids))
+            cursor.execute(f"UPDATE analytics SET status = '1' WHERE id IN ({format_strings})", ids)
+            db.commit()
+
+            return {
+                "message": "Batch synced successfully.",
+                "status_code": response.status_code,
+                "records_synced": len(analytics_res)
+            }
+        else:
             failed_batches += 1
-
-        total_records_processed += len(analytics_res)
-        total_batches_processed += 1
-
-    cursor.close()
-    db.close()
-
-    return JSONResponse(content={
-        "status": True,
-        "message": "Data processing completed",
-        "totalRecordsProcessed": total_records_processed,
-        "totalBatchesProcessed": total_batches_processed,
-        "successfulBatches": successful_batches,
-        "failedBatches": failed_batches,
-        "code": 200
-    })
+            db.rollback()
+            return {
+                "message": "Failed to sync batch.",
+                "status_code": response.status_code,
+                "details": response.text
+            }
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+    finally:
+        cursor.close()
+        db.close()
+        
     
     
 def get_device_id():
