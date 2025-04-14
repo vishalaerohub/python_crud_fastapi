@@ -5,6 +5,9 @@ from app.utils.dateParse import parse_date
 from app.utils.downloader import downloadAndSaveFile
 from fastapi.responses import JSONResponse
 
+import subprocess
+import re
+
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -410,10 +413,10 @@ async def syncAnalytics():
     failed_batches = 0
     
     API_URL = apiEndPointBaseUrl + "saveanalytics"
+
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
-    
-    
+
     while True:
         cursor.execute(f"""
             SELECT 
@@ -422,42 +425,69 @@ async def syncAnalytics():
             FROM analytics 
             WHERE status = '0'
             ORDER BY id
-            LIMIT {batch_size} 
+            LIMIT {batch_size}
         """)
-        
         analytics_res = cursor.fetchall()
+
         if not analytics_res:
             break
-        
+
         for record in analytics_res:
-            record["device_id"] = "AEROKENYA20250105E38"
-        
+            record["device_id"] = get_device_id()
+
         try:
             response = requests.post(API_URL, json=analytics_res, headers=HEADERS, timeout=10)
-            
-            # Print or log full response content (for debugging)
-            print("Response status code:", response.status_code)
-            print("Response text:", response.text)
-            
             if response.status_code == 200:
-                # If successful, delete the processed records
                 ids_to_delete = [str(r["id"]) for r in analytics_res]
                 id_string = ",".join(ids_to_delete)
                 cursor.execute(f"DELETE FROM analytics WHERE id IN ({id_string})")
                 db.commit()
                 successful_batches += 1
             else:
-                print("API Error:", response.status_code, response.text)
                 failed_batches += 1
-
         except Exception as e:
             db.rollback()
-            print("Request failed:", str(e))
             failed_batches += 1
-        
+
         total_records_processed += len(analytics_res)
         total_batches_processed += 1
+
     cursor.close()
     db.close()
+
+    return JSONResponse(content={
+        "status": True,
+        "message": "Data processing completed",
+        "totalRecordsProcessed": total_records_processed,
+        "totalBatchesProcessed": total_batches_processed,
+        "successfulBatches": successful_batches,
+        "failedBatches": failed_batches,
+        "code": 200
+    })
+    
+    
+def get_device_id():
+    try:
+        # Try to get MAC from interfaces starting with enp
+        result = subprocess.run("ip link show | grep -A1 enp | awk '/link\\/ether/ {print $2}'", 
+                                shell=True, capture_output=True, text=True)
+        mac_address = re.sub(r'\s+', '', result.stdout)
+
+        if not mac_address:
+            # Try alternative way
+            result = subprocess.run("ip -o link show | awk -F ' ' '/enp/ {print $17}'", 
+                                    shell=True, capture_output=True, text=True)
+            mac_address = re.sub(r'\s+', '', result.stdout)
+
+        if not mac_address:
+            # Fallback for any link/ether
+            result = subprocess.run("ip -o link show | awk -F ' ' '/link\\/ether/ {print $17}'", 
+                                    shell=True, capture_output=True, text=True)
+            mac_address = re.sub(r'\s+', '', result.stdout)
+
+        return mac_address
+    except Exception as e:
+        print("Error getting MAC address:", str(e))
+        return None
     
     
