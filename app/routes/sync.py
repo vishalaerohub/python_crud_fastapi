@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
-import requests, os, traceback, shutil, logging
+import requests, os, traceback, shutil, logging, json
 from app.utils.dateParse import parse_date
 from app.utils.downloader import downloadAndSaveFile
+from fastapi.responses import JSONResponse
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -147,6 +148,7 @@ async def syncMovies():
         logger.info("🔒 Database connection closed.")
 
     return output
+
 
 @router.get("/syncAdvertisement")
 def syncAdvertisement():
@@ -398,3 +400,64 @@ def syncMagazine_router():
     db.close()
 
     return output
+
+@router.get('/syncAnalytics')
+async def syncAnalytics():
+    batch_size = 100
+    total_records_processed = 0
+    total_batches_processed = 0
+    successful_batches = 0
+    failed_batches = 0
+    
+    API_URL = apiEndPointBaseUrl + "saveanalytics"
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+    
+    
+    while True:
+        cursor.execute(f"""
+            SELECT 
+                id, name, event, subject, ip, description, created_at, 
+                content_id, user_id, source_city AS source, destination_city AS destination
+            FROM analytics 
+            WHERE status = '0'
+            ORDER BY id
+            LIMIT {batch_size} 
+        """)
+        
+        analytics_res = cursor.fetchall()
+        if not analytics_res:
+            break
+        
+        for record in analytics_res:
+            record["device_id"] = "AEROKENYA20250105E38"
+        
+        try:
+            response = requests.post(API_URL, json=analytics_res, headers=HEADERS, timeout=10)
+            
+            # Print or log full response content (for debugging)
+            print("Response status code:", response.status_code)
+            print("Response text:", response.text)
+            
+            if response.status_code == 200:
+                # If successful, delete the processed records
+                ids_to_delete = [str(r["id"]) for r in analytics_res]
+                id_string = ",".join(ids_to_delete)
+                cursor.execute(f"DELETE FROM analytics WHERE id IN ({id_string})")
+                db.commit()
+                successful_batches += 1
+            else:
+                print("API Error:", response.status_code, response.text)
+                failed_batches += 1
+
+        except Exception as e:
+            db.rollback()
+            print("Request failed:", str(e))
+            failed_batches += 1
+        
+        total_records_processed += len(analytics_res)
+        total_batches_processed += 1
+    cursor.close()
+    db.close()
+    
+    
