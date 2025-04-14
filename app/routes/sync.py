@@ -148,12 +148,6 @@ async def syncMovies():
 
     return output
 
-@router.get("/syncData")
-def syncData():
-    return {
-        "data":"looking goooddd mannn..."
-    }
-
 @router.get("/syncAdvertisement")
 def syncAdvertisement():
     API_URL = apiEndPointBaseUrl + "syncAdvertisement"
