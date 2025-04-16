@@ -1,4 +1,3 @@
-import httpx
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json

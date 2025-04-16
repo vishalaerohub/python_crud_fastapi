@@ -2,7 +2,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json
-from app.utils.getFileSize import list_files_with_sizes
+from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 # from app.utils.downloader import downloadAndSaveFile
 # from fastapi.responses import JSONResponse
 
@@ -127,11 +127,29 @@ async def syncMovies():
                     """, movie_data)
                     
                     # in case of our matching case:
-                    base_path = f"/media/vishal/891D-C373/content/tvshows/KQ-N-AfricaEcoRace-S01E02-Eng/common"
-                    result = list_files_with_sizes(base_path)
-                    return result
+                    database_path = item['src']
+                    base_path = "/media/vishal/891D-C373/content/moviesMedia/"
+                    if os.path.isdir(base_path + item['TMDbId']):
+                        print("Folder exists.")
+                        
+                    else:
+                        print("Folder does not exist.")
+                        
+                    # folders_info = list_folders_with_sizes(base_path)
+                    # folder_paths = []
+                    # for folder in folders_info:
+                    #     # folder_paths.append(f"{folder['name']} - {folder['size_mb']} MB")
+                    #     if folder['name'] == item['TMDbId']:
+                    #         print(f"{folder['name']} is matched")
+                    #     else:
+                    #         print(f"{folder['name']} is not matched")
+                    
+                    # return folder_paths
                     # also check data in box too
                     # if media content already exists in box with same name & same size then skip the file transfer process
+                    # base_path = f"/media/vishal/891D-C373/content/moviesMedia/KQ-N-4PM-KorEngSUB/common"
+                    # result = list_files_with_sizes(base_path)
+                    # return result
 
                     output.append({
                         "movie_id": item['id'],
