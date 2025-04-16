@@ -125,15 +125,20 @@ async def syncMovies():
                             position=VALUES(position), start_date=VALUES(start_date), end_date=VALUES(end_date),
                             ad_id=VALUES(ad_id), is_deleted=VALUES(is_deleted), status=VALUES(status)
                     """, movie_data)
-                    
+                    exists = ''
                     # in case of our matching case:
-                    database_path = item['src']
                     base_path = "/media/vishal/891D-C373/content/moviesMedia/"
                     if os.path.isdir(base_path + item['TMDbId']):
-                        print("Folder exists.")
+                        # print("Folder exists.")
+                        # now check folder existance in box or code repo
+                        if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}"):
+                            exists = "Exits in box too."
+                        else:
+                            exists = "Not exists in box."
                         
                     else:
-                        print("Folder does not exist.")
+                        exists = "Folder does not exist."
+                        
                         
                     # folders_info = list_folders_with_sizes(base_path)
                     # folder_paths = []
@@ -155,7 +160,8 @@ async def syncMovies():
                         "movie_id": item['id'],
                         "message": f"{item['title']} has been updated",
                         "status": "true",
-                        "code": "200"
+                        "code": "200",
+                        "is_exists": exists
                     })
                     logger.info(f"✅ Upserted movie: {item['title']} (ID: {item['id']})")
 
