@@ -5,6 +5,7 @@ import requests, os, traceback, shutil, logging, json
 from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 # from app.utils.downloader import downloadAndSaveFile
 # from fastapi.responses import JSONResponse
+from pathlib import Path
 
 router = APIRouter()
 
@@ -128,13 +129,31 @@ async def syncMovies():
                     exists = ''
                     # in case of our matching case:
                     base_path = "/media/vishal/891D-C373/content/moviesMedia/"
-                    if os.path.isdir(base_path + item['TMDbId']):
+                    if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         # print("Folder exists.")
+                        
                         # now check folder existance in box or code repo
                         if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}"):
                             exists = "Exits in box too."
+                            break
                         else:
                             exists = "Not exists in box."
+                            # start work to transfer media
+                            source_folder = Path(base_path + item['TMDbId'])
+                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}")
+
+                            # Make sure the destination directory exists or create it
+                            destination_folder.mkdir(parents=True, exist_ok=True)
+
+                            # Set the full destination path (including copied folder name)
+                            final_destination = destination_folder / source_folder.name
+
+                            # Copy the folder and all contents
+                            if source_folder.exists() and source_folder.is_dir():
+                                shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
+                                copy  = f"Copied '{source_folder}' to '{final_destination}'"
+                            else:
+                                copy = "Source folder does not exist or is not a directory."
                         
                     else:
                         exists = "Folder does not exist."
@@ -161,7 +180,8 @@ async def syncMovies():
                         "message": f"{item['title']} has been updated",
                         "status": "true",
                         "code": "200",
-                        "is_exists": exists
+                        "is_exists": exists,
+                        "copied": copy
                     })
                     logger.info(f"✅ Upserted movie: {item['title']} (ID: {item['id']})")
 
