@@ -88,19 +88,19 @@ def syncTvshows():
                     """, tv_data)
                     exists = ''
                     # in case of our matching case:
-                    base_path = "/media/vishal/891D-C373/content/tvshows/"
+                    base_path = "/media/suhail/891D-C373/content/tvshows/"
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         # print("Folder exists.")
                         
                         # now check folder existance in box or code repo
-                        if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/tvshows/{item['TMDbId']}"):
+                        if os.path.isdir(f"/Python_Project/python_crud_fastapi/public/tvshows/{item['TMDbId']}"):
                             exists = "Exits in box too."
                             break
                         else:
                             exists = "Not exists in box."
                             # start work to transfer media
                             source_folder = Path(base_path + item['TMDbId'])
-                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/tvshows")
+                            destination_folder = Path(f"/Python_Project/python_crud_fastapi/public/tvshows")
 
                             # Make sure the destination directory exists or create it
                             destination_folder.mkdir(parents=True, exist_ok=True)

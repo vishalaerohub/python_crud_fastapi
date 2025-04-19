@@ -169,7 +169,19 @@ async def syncMovies():
                         else:
                             exists = "Not exists in box."
                             # start work to transfer media
+<<<<<<< HEAD
                             
+=======
+                            source_folder = Path(base_path + item['TMDbId'])
+                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}")
+
+                            # Make sure the destination directory exists or create it
+                            destination_folder.mkdir(parents=True, exist_ok=True)
+
+                            # Set the full destination path (including copied folder name)
+                            final_destination = destination_folder / source_folder.name
+
+>>>>>>> a7755fb (Update: copy file logic updated in synctvshows.py)
                             # Copy the folder and all contents
                             if source_folder.exists() and source_folder.is_dir():
                                 shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
