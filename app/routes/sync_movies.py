@@ -132,7 +132,7 @@ async def syncMovies():
                     base_path = "/media/vishal/891D-C373/content/moviesMedia/"
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         
-                        source_folder = Path(base_path + item['TMDbId']) # this is paendrive path
+                        source_folder = Path(base_path + item['TMDbId']) # this is Pendrive path
                         destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia") # this is box path my my movie will be going to copy
                         
                         # Make sure the destination directory exists or create it
@@ -158,7 +158,12 @@ async def syncMovies():
                                 destination_total_files = get_folder_files_details_destination['total_files']
                                 
                                 if source_total_files == destination_total_files:
-                                    copy = f"{item['TMDbId']} is fully fulfilled"
+                                    # copy = f"{item['TMDbId']} is fully fulfilled"
+                                    src_files = get_folder_files_details_source["files"]
+                                    des_files = get_folder_files_details_destination["files"]
+                                    # return files
+                                    for src_file in src_files:
+                                        return src_file['size_bytes']
                                     
                                 else:
                                     # return "kuchh to gadbad hai daya!"
