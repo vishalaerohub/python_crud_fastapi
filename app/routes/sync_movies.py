@@ -127,27 +127,49 @@ async def syncMovies():
                             ad_id=VALUES(ad_id), is_deleted=VALUES(is_deleted), status=VALUES(status)
                     """, movie_data)
                     exists = ''
+                    
                     # in case of our matching case:
                     base_path = "/media/vishal/891D-C373/content/moviesMedia/"
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
-                        # print("Folder exists.")
+                        
+                        source_folder = Path(base_path + item['TMDbId']) # this is paendrive path
+                        destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia") # this is box path my my movie will be going to copy
+                        
+                        # Make sure the destination directory exists or create it
+                        destination_folder.mkdir(parents=True, exist_ok=True)
+
+                        # Set the full destination path (including copied folder name)
+                        final_destination = destination_folder / source_folder.name
+
                         
                         # now check folder existance in box or code repo
                         if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}"):
-                            exists = "Exits in box too."
-                            break
+                            # now check each file from movies folder and their chunks file based on counting and size
+                            source_common_folder      = Path(source_folder/ 'common')
+                            destination_common_folder = Path(destination_folder/ item['TMDbId']/'common')
+                            
+                            
+                            if source_common_folder.exists() and source_common_folder.is_dir() and destination_common_folder.exists() and destination_common_folder.is_dir():
+                                
+                                get_folder_files_details_source      = list_files_with_sizes(source_common_folder)
+                                get_folder_files_details_destination = list_files_with_sizes(destination_common_folder)
+                                # return get_folder_files_details_destination
+                                source_total_files = get_folder_files_details_source['total_files']
+                                destination_total_files = get_folder_files_details_destination['total_files']
+                                
+                                if source_total_files == destination_total_files:
+                                    copy = f"{item['TMDbId']} is fully fulfilled"
+                                    
+                                else:
+                                    # return "kuchh to gadbad hai daya!"
+                                    shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
+                                    copy  = f"Copied '{source_folder}' to '{final_destination}'"
+                            else:
+                                return "no its not exists in movie folder"
                         else:
                             exists = "Not exists in box."
                             # start work to transfer media
-                            source_folder = Path(base_path + item['TMDbId'])
-                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia")
-
-                            # Make sure the destination directory exists or create it
-                            destination_folder.mkdir(parents=True, exist_ok=True)
-
-                            # Set the full destination path (including copied folder name)
-                            final_destination = destination_folder / source_folder.name
-
+                            
                             # Copy the folder and all contents
                             if source_folder.exists() and source_folder.is_dir():
                                 shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
