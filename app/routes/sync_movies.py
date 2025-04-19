@@ -140,7 +140,7 @@ async def syncMovies():
                             exists = "Not exists in box."
                             # start work to transfer media
                             source_folder = Path(base_path + item['TMDbId'])
-                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}")
+                            destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia")
 
                             # Make sure the destination directory exists or create it
                             destination_folder.mkdir(parents=True, exist_ok=True)
