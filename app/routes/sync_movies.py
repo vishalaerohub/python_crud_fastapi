@@ -6,11 +6,17 @@ from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 # from app.utils.downloader import downloadAndSaveFile
 # from fastapi.responses import JSONResponse
 from pathlib import Path
+import logging
 
 router = APIRouter()
 
 # Configure basic logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    filename='file_copy.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+    
+)
 logger = logging.getLogger(__name__)
 
 def safe_remove(path: str):
@@ -70,6 +76,7 @@ async def syncMovies():
 
                 cursor.execute("DELETE FROM movies WHERE id = %s", (item["id"],))
                 logger.info(f"❌ Deleted movie ID {item['id']} from database")
+                logging.info(f"❌ Deleted movie ID {item['id']} from database")
 
             else:
                 movie_data = (
@@ -166,7 +173,7 @@ async def syncMovies():
                                     for file in src_files:
                                         key = (file["name"], file["size_bytes"])
                                         if key not in des_file_set:
-                                            src_path = os.path.join(source_common_folder, file["name"])
+                                            src_path  = os.path.join(source_common_folder, file["name"])
                                             dest_path = os.path.join(destination_common_folder, file["name"])
                                             
                                             print(f"Copying {file['name']} from source to destination...")
