@@ -1,4 +1,4 @@
-import httpx
+# import httpx
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json
@@ -150,10 +150,9 @@ async def syncMovies():
                             
                             
                             if source_common_folder.exists() and source_common_folder.is_dir() and destination_common_folder.exists() and destination_common_folder.is_dir():
-                                
                                 get_folder_files_details_source      = list_files_with_sizes(source_common_folder)
                                 get_folder_files_details_destination = list_files_with_sizes(destination_common_folder)
-                                # return get_folder_files_details_destination
+                                # return source_common_folder
                                 source_total_files = get_folder_files_details_source['total_files']
                                 destination_total_files = get_folder_files_details_destination['total_files']
                                 
@@ -161,9 +160,18 @@ async def syncMovies():
                                     # copy = f"{item['TMDbId']} is fully fulfilled"
                                     src_files = get_folder_files_details_source["files"]
                                     des_files = get_folder_files_details_destination["files"]
-                                    # return files
-                                    for src_file in src_files:
-                                        return src_file['size_bytes']
+                                    
+                                    des_file_set = {(f["name"], f["size_bytes"]) for f in des_files}
+                                    
+                                    for file in src_files:
+                                        key = (file["name"], file["size_bytes"])
+                                        if key not in des_file_set:
+                                            src_path = os.path.join(source_common_folder, file["name"])
+                                            dest_path = os.path.join(destination_common_folder, file["name"])
+                                            
+                                            print(f"Copying {file['name']} from source to destination...")
+                                            shutil.copy2(src_path, dest_path)
+                                            # return file['size_bytes'] # next work start from here....
                                     
                                 else:
                                     # return "kuchh to gadbad hai daya!"
