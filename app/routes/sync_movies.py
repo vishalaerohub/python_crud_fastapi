@@ -147,7 +147,6 @@ async def syncMovies():
 
                         # Set the full destination path (including copied folder name)
                         final_destination = destination_folder / source_folder.name
-
                         
                         # now check folder existance in box or code repo
                         if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}"):
