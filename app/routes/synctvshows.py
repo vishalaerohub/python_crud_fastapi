@@ -71,21 +71,21 @@ def sync_tv_shows():
                 ad_id = item.get("ad_id") if item.get("ad_id", 0) > 0 else None
 
                 tv_data = (
-                    item.get("lang"), item.get("title"), item.get("display_title"), item.get("media_type"), item.get("genre"),
+                    tvshow_id, item.get("lang"), item.get("title"), item.get("display_title"), item.get("media_type"), item.get("genre"),
                     item.get("distributor"), item.get("synopsis"), item.get("year"), item.get("duration"),
                     item.get("TMDbId"), item.get("src"), item.get("p_src"), item.get("bd_src"),
                     item.get("rating"), item.get("Highlight"), item.get("cast"), item.get("direction"),
                     item.get("position"), item.get("start_date"), item.get("end_date"), ad_id,
                     item.get("is_deleted"), str(item.get("status")), item.get("type"),
-                    item.get("attached_id"), item.get("episode_num"), tvshow_id
+                    item.get("attached_id"), item.get("episode_num")
                 )
 
                 cursor.execute("""
                     INSERT INTO tvshows (
-                        lang, title, display_title, media_type, genre, distributor, synopsis, year, duration,
+                        id, lang, title, display_title, media_type, genre, distributor, synopsis, year, duration,
                         TMDbId, src, p_src, bd_src, rating, highlight, cast, direction,
                         position, start_date, end_date, ad_id, is_deleted, status, type,
-                        attached_id, episode_num, id
+                        attached_id, episode_num
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
