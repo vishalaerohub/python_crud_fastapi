@@ -82,7 +82,7 @@ def sync_tv_shows():
 
                 cursor.execute("""
                     INSERT INTO tvshows (
-                        id, lang, title, display_title, media_type, genre, distributor, synopsis, year, duration,
+                        lang, title, media_type, genre, distributor, synopsis, year, duration,
                         TMDbId, src, p_src, bd_src, rating, highlight, cast, direction,
                         position, start_date, end_date, ad_id, is_deleted, status, type,
                         attached_id, episode_num
