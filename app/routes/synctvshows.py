@@ -44,6 +44,7 @@ def sync_tv_shows():
     output = []
 
     try:
+        # return response_data["data"]
         for item in response_data["data"]:
             tvshow_id = item.get("id")
 
@@ -70,7 +71,7 @@ def sync_tv_shows():
                 ad_id = item.get("ad_id") if item.get("ad_id", 0) > 0 else None
 
                 tv_data = (
-                    item.get("lang"), item.get("title"), item.get("media_type"), item.get("genre"),
+                    item.get("lang"), item.get("title"), item.get("display_title"), item.get("media_type"), item.get("genre"),
                     item.get("distributor"), item.get("synopsis"), item.get("year"), item.get("duration"),
                     item.get("TMDbId"), item.get("src"), item.get("p_src"), item.get("bd_src"),
                     item.get("rating"), item.get("Highlight"), item.get("cast"), item.get("direction"),
@@ -81,16 +82,16 @@ def sync_tv_shows():
 
                 cursor.execute("""
                     INSERT INTO tvshows (
-                        lang, title, media_type, genre, distributor, synopsis, year, duration,
+                        lang, title, display_title, media_type, genre, distributor, synopsis, year, duration,
                         TMDbId, src, p_src, bd_src, rating, highlight, cast, direction,
                         position, start_date, end_date, ad_id, is_deleted, status, type,
                         attached_id, episode_num, id
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                     ON DUPLICATE KEY UPDATE
-                        lang=VALUES(lang), title=VALUES(title), media_type=VALUES(media_type),
+                        lang=VALUES(lang), title=VALUES(title), display_title=VALUES(display_title), media_type=VALUES(media_type),
                         genre=VALUES(genre), distributor=VALUES(distributor), synopsis=VALUES(synopsis),
                         year=VALUES(year), duration=VALUES(duration), TMDbId=VALUES(TMDbId),
                         src=VALUES(src), p_src=VALUES(p_src), bd_src=VALUES(bd_src), rating=VALUES(rating),

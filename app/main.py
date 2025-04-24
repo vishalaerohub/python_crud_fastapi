@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, HTTPException
 from app.db import get_db_connection
 # from app.routes.users import router as users_router
@@ -13,8 +14,8 @@ from app.routes.sync_cityscape import router as sync_cityscape_router
 app = FastAPI()
 
 app.include_router(sync_movie_router)
-app.include_router(sync_router)
 app.include_router(synctvshows_router)
+app.include_router(sync_router)
 app.include_router(syncMagazine_router)
 app.include_router(syncgames_router)
 app.include_router(sync_cityscape_router)
