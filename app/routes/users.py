@@ -3,8 +3,12 @@ from app.models import User
 from app.db import get_db_connection
 # from pydantic import BaseModel
 import mysql.connector
+import getpass, os
 
 router = APIRouter()
+    
+    
+    
 # Get all users
 @router.get("/users")
 def get_users():

@@ -6,7 +6,7 @@ from app.utils.downloader import downloadAndSaveFile
 from fastapi.responses import JSONResponse
 
 import subprocess
-import re
+import re, getpass
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -501,5 +501,26 @@ def get_device_id():
     except Exception as e:
         print("Error getting MAC address:", str(e))
         return None
+    
+def find_usb_mount_path():
+    username = getpass.getuser()
+    media_path = f"/media/{username}"
+
+    if os.path.exists(media_path):
+        for item in os.listdir(media_path):
+            full_path = os.path.join(media_path, item)
+            if os.path.ismount(full_path):
+                return full_path  # Return the first mounted USB path
+
+    return None
+
+@router.get("/usb-path")
+def get_usb_path():
+    usb_path = find_usb_mount_path()
+    if usb_path:
+        base_path = os.path.join(usb_path, "content/Songs")
+        return {"status": "success", "base_path": base_path}
+    else:
+        return {"status": "error", "message": "No USB drive detected"}
     
     
