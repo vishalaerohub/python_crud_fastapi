@@ -2,22 +2,21 @@ from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, logging
 from pathlib import Path
-from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
+from app.utils.getFileSize import list_files_with_sizes
+import shutil
+from datetime import datetime
 
-# Define logger
+# Logger setup
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Define router
+# FastAPI router
 router = APIRouter()
-
 
 apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
 HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
-# Placeholder for parse_date, define accordingly
 def parse_date(date_str):
-    from datetime import datetime
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
 
 @router.get("/sync-music")
@@ -34,8 +33,8 @@ def sync_music_router():
         raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
 
     if not response_data.get("data"):
-        raise HTTPException(status_code=404, detail="Data is not available")
-    
+        raise HTTPException(status_code=404, detail="No data available")
+
     songs = response_data["data"]
     db = get_db_connection()
     cursor = db.cursor()
@@ -47,7 +46,7 @@ def sync_music_router():
 
         try:
             if is_deleted == 1:
-                # Delete files
+                # Delete media files
                 song_path = os.path.join("public", song["song_path"].lstrip("/"))
                 cover_path = os.path.join("public", song["cover_path"].lstrip("/"))
                 if os.path.exists(song_path):
@@ -55,13 +54,14 @@ def sync_music_router():
                 if os.path.exists(cover_path):
                     os.remove(cover_path)
 
-                # Delete DB record
+                # Delete from DB
                 cursor.execute("DELETE FROM songs WHERE id = %s", (song_id,))
             else:
-                # Convert datetime strings to MySQL format
+                # Parse dates
                 created_at = parse_date(song['createdAt'])
                 updated_at = parse_date(song['updatedAt'])
 
+                # Insert or update DB
                 cursor.execute("""
                     INSERT INTO songs (
                         id, partner_id, title, genres, album, year, category, artist, status,
@@ -85,8 +85,41 @@ def sync_music_router():
                     song["playlist_id"], is_deleted, song["position"],
                     song["start_date"], song["end_date"], created_at, updated_at
                 ))
+
+                # ===== File Copy Logic =====
+                usb_base_path = "/media/suhail/891D-C373/content/music_old/Songs"
+                box_base_path = "/home/vishal/aerohub/python_crud_fastapi/public/Songs/"
+
+                song_relative_path = song["song_path"].lstrip("/")
+                file_name = os.path.basename(song_relative_path)
+
+                try:
+                    print("📁 song_path from API:", song["song_path"])
+                    print("📁 Extracted file name:", file_name)
+                    parts = song_relative_path.split("/")
+                    if len(parts) < 3:
+                        logger.warning(f"Invalid song_path format: {song['song_path']}")
+                        continue
+
+                    partner_folder = parts[1] 
+                    source_path = Path(usb_base_path) / partner_folder / file_name
+                    destination_path = Path(box_base_path) / partner_folder / file_name
+
+                    print("🔍 Checking source:", source_path)
+                    print("📌 Destination path:", destination_path)
+
+                    if source_path.exists():
+                        destination_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source_path, destination_path)
+                        logger.info(f"✅ Copied: {file_name}")
+                    else:
+                        logger.warning(f"⚠️ Source file not found: {source_path}")
+                except Exception as copy_err:
+                    logger.error(f"❌ Error copying file {file_name}: {copy_err}")
+
                 output.append({
                     "song_id": song['id'],
+                    "title": song['title'],
                     "message": f"'{song['title']}' has been synced.",
                     "status": "true",
                     "code": "200"
