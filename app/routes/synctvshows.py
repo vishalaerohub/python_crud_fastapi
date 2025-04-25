@@ -98,11 +98,11 @@ def sync_tv_shows():
                 exists = ''
                 copy = ''
 
-                base_path = "/media/suhail/891D-C373/content/tvshows"
+                base_path = "/media/vishal/891D-C373/content/tvshows"
                 usb_folder_path = os.path.join(base_path, str(item['TMDbId']))
                 if check_folder_existence(usb_folder_path):
                     source_folder = Path(usb_folder_path)
-                    destination_folder = Path(f"/home/suhail/Python_Project/python_crud_fastapi/public/tvshows")
+                    destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/tvshows")
                     destination_folder.mkdir(parents=True, exist_ok=True)
                     final_destination = destination_folder / source_folder.name
 
