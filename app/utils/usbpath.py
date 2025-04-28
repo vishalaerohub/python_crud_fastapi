@@ -10,3 +10,6 @@ def find_usb_mount_path():
                 return full_path  # Return the first mounted USB path
 
     return None
+
+def box_base_path():
+    return "/home/vishal/aerohub/python_crud_fastapi/public/"

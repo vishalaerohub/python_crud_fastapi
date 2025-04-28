@@ -5,6 +5,9 @@ from pathlib import Path
 from app.utils.getFileSize import list_files_with_sizes
 import shutil
 from datetime import datetime
+from app.utils.dateParse import parse_date
+from app.utils.usbpath import find_usb_mount_path
+usb_path = find_usb_mount_path()
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -16,8 +19,6 @@ router = APIRouter()
 apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
 HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
-def parse_date(date_str):
-    return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
 
 @router.get("/sync-music")
 def sync_music_router():
@@ -43,6 +44,7 @@ def sync_music_router():
     for song in songs:
         song_id = song["id"]
         is_deleted = song["is_deleted"]
+        
 
         try:
             if is_deleted == 1:
@@ -85,14 +87,14 @@ def sync_music_router():
                     song["playlist_id"], is_deleted, song["position"],
                     song["start_date"], song["end_date"], created_at, updated_at
                 ))
+                
 
                 # ===== File Copy Logic =====
-                usb_base_path = "/media/suhail/891D-C373/content/music_old/Songs"
-                box_base_path = "/home/vishal/aerohub/python_crud_fastapi/public/Songs/"
+                usb_base_path = f"{usb_path}/content/music/Songs"
+                box_base_path = "/home/vishal/aerohub/python_crud_fastapi/public/music/Songs/"
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)
-
                 try:
                     print("📁 song_path from API:", song["song_path"])
                     print("📁 Extracted file name:", file_name)
@@ -101,9 +103,11 @@ def sync_music_router():
                         logger.warning(f"Invalid song_path format: {song['song_path']}")
                         continue
 
-                    partner_folder = parts[1] 
-                    source_path = Path(usb_base_path) / partner_folder / file_name
-                    destination_path = Path(box_base_path) / partner_folder / file_name
+                    partner_folder = parts[0] 
+                    source_path = Path(usb_base_path)  / file_name
+                    destination_path = Path(box_base_path) / file_name
+                    
+                    # return destination_path
 
                     print("🔍 Checking source:", source_path)
                     print("📌 Destination path:", destination_path)

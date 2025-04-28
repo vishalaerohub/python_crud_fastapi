@@ -7,7 +7,7 @@ from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 # from fastapi.responses import JSONResponse
 from pathlib import Path
 import logging
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path, box_base_path
 
 usb_path = find_usb_mount_path()
 
@@ -143,7 +143,7 @@ async def syncMovies():
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         
                         source_folder = Path(base_path + item['TMDbId']) # this is Pendrive path
-                        destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia") # this is box path my my movie will be going to copy
+                        destination_folder = Path(f"{box_base_path()}moviesMedia") # this is box path my my movie will be going to copy
                         
                         # Make sure the destination directory exists or create it
                         destination_folder.mkdir(parents=True, exist_ok=True)
