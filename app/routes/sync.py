@@ -517,8 +517,9 @@ def find_usb_mount_path():
 @router.get("/usb-path")
 def get_usb_path():
     usb_path = find_usb_mount_path()
+    return usb_path
     if usb_path:
-        base_path = os.path.join(usb_path, "content/Songs")
+        base_path = os.path.join(usb_path)
         return {"status": "success", "base_path": base_path}
     else:
         return {"status": "error", "message": "No USB drive detected"}
