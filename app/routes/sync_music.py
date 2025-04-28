@@ -2,23 +2,28 @@ from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, logging
 from pathlib import Path
-from app.utils.getFileSize import list_files_with_sizes
+from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 import shutil
 from datetime import datetime
-from app.utils.dateParse import parse_date
-from app.utils.usbpath import find_usb_mount_path
-usb_path = find_usb_mount_path()
 
-# Logger setup
+# Define logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# FastAPI router
+# Define router
 router = APIRouter()
 
 apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
 HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
+def parse_date(date_str):
+    return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
+
+# Function to check if the folder exists
+def check_folder_existence(folder_path: str):
+    folder_path = Path(folder_path)
+    print(f"Checking if the folder exists: {folder_path}")
+    return folder_path.exists() and folder_path.is_dir()
 
 @router.get("/sync-music")
 def sync_music_router():
@@ -34,8 +39,8 @@ def sync_music_router():
         raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
 
     if not response_data.get("data"):
-        raise HTTPException(status_code=404, detail="No data available")
-
+        raise HTTPException(status_code=404, detail="Data is not available")
+    
     songs = response_data["data"]
     db = get_db_connection()
     cursor = db.cursor()
@@ -48,7 +53,7 @@ def sync_music_router():
 
         try:
             if is_deleted == 1:
-                # Delete media files
+                # Delete files
                 song_path = os.path.join("public", song["song_path"].lstrip("/"))
                 cover_path = os.path.join("public", song["cover_path"].lstrip("/"))
                 if os.path.exists(song_path):
@@ -56,14 +61,13 @@ def sync_music_router():
                 if os.path.exists(cover_path):
                     os.remove(cover_path)
 
-                # Delete from DB
+                # Delete DB record
                 cursor.execute("DELETE FROM songs WHERE id = %s", (song_id,))
             else:
-                # Parse dates
+                # Convert datetime strings to MySQL format
                 created_at = parse_date(song['createdAt'])
                 updated_at = parse_date(song['updatedAt'])
 
-                # Insert or update DB
                 cursor.execute("""
                     INSERT INTO songs (
                         id, partner_id, title, genres, album, year, category, artist, status,
@@ -90,11 +94,12 @@ def sync_music_router():
                 
 
                 # ===== File Copy Logic =====
-                usb_base_path = f"{usb_path}/content/music/Songs"
-                box_base_path = "/home/vishal/aerohub/python_crud_fastapi/public/music/Songs/"
+                usb_base_path = "/media/suhail/891D-C373/content/music_old/Songs"
+                box_base_path = "/home/vishal/aerohub/python_crud_fastapi/public/Songs/"
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)
+
                 try:
                     print("📁 song_path from API:", song["song_path"])
                     print("📁 Extracted file name:", file_name)
@@ -103,11 +108,9 @@ def sync_music_router():
                         logger.warning(f"Invalid song_path format: {song['song_path']}")
                         continue
 
-                    partner_folder = parts[0] 
-                    source_path = Path(usb_base_path)  / file_name
-                    destination_path = Path(box_base_path) / file_name
-                    
-                    # return destination_path
+                    partner_folder = parts[1] 
+                    source_path = Path(usb_base_path) / partner_folder / file_name
+                    destination_path = Path(box_base_path) / partner_folder / file_name
 
                     print("🔍 Checking source:", source_path)
                     print("📌 Destination path:", destination_path)
@@ -117,16 +120,19 @@ def sync_music_router():
                         shutil.copy2(source_path, destination_path)
                         logger.info(f"✅ Copied: {file_name}")
                     else:
-                        logger.warning(f"⚠️ Source file not found: {source_path}")
-                except Exception as copy_err:
-                    logger.error(f"❌ Error copying file {file_name}: {copy_err}")
+                        exists = "Not exists in box."
+                        shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
+                        copy = f"Copied folder to: {final_destination}"
+                else:
+                    exists = "Folder does not exist in Pendrive."
 
                 output.append({
-                    "song_id": song['id'],
-                    "title": song['title'],
+                    "song_id": song_id,
                     "message": f"'{song['title']}' has been synced.",
                     "status": "true",
-                    "code": "200"
+                    "code": "200",
+                    "is_exists": exists,
+                    "copied": copy
                 })
 
         except Exception as e:
