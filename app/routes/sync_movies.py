@@ -7,6 +7,9 @@ from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
 # from fastapi.responses import JSONResponse
 from pathlib import Path
 import logging
+from app.utils.usbpath import find_usb_mount_path
+
+usb_path = find_usb_mount_path()
 
 router = APIRouter()
 
@@ -136,7 +139,7 @@ async def syncMovies():
                     exists = ''
                     
                     # in case of our matching case:
-                    base_path = "/media/vishal/891D-C373/content/moviesMedia/"
+                    base_path = f"{usb_path}/content/moviesMedia/"
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         
                         source_folder = Path(base_path + item['TMDbId']) # this is Pendrive path
@@ -187,9 +190,7 @@ async def syncMovies():
                                 return "no its not exists in movie folder"
                         else:
                             exists = "Not exists in box."
-                            # start work to transfer media
-                            
-                            # Copy the folder and all contents
+
                             if source_folder.exists() and source_folder.is_dir():
                                 shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
                                 copy  = f"Copied '{source_folder}' to '{final_destination}'"
@@ -199,22 +200,6 @@ async def syncMovies():
                     else:
                         exists = "Folder does not exist."
                         
-                        
-                    # folders_info = list_folders_with_sizes(base_path)
-                    # folder_paths = []
-                    # for folder in folders_info:
-                    #     # folder_paths.append(f"{folder['name']} - {folder['size_mb']} MB")
-                    #     if folder['name'] == item['TMDbId']:
-                    #         print(f"{folder['name']} is matched")
-                    #     else:
-                    #         print(f"{folder['name']} is not matched")
-                    
-                    # return folder_paths
-                    # also check data in box too
-                    # if media content already exists in box with same name & same size then skip the file transfer process
-                    # base_path = f"/media/vishal/891D-C373/content/moviesMedia/KQ-N-4PM-KorEngSUB/common"
-                    # result = list_files_with_sizes(base_path)
-                    # return result
 
                     output.append({
                         "movie_id": item['id'],
