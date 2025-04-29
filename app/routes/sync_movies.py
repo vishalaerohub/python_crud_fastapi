@@ -187,7 +187,7 @@ async def syncMovies():
                                     shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
                                     copy  = f"Copied '{source_folder}' to '{final_destination}'"
                             else:
-                                return "no its not exists in movie folder"
+                                exists =  "no its not exists in movie folder"
                         else:
                             exists = "Not exists in box."
 
