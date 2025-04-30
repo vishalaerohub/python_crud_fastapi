@@ -63,6 +63,7 @@ async def syncMovies():
     db = get_db_connection()
 
     try:
+        return response_data["data"]
         cursor = db.cursor()
         for item in response_data["data"]:
             ad_id = item["ad_id"] if item["ad_id"] not in [None, "", "0"] else None
