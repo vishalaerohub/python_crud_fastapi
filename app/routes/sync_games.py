@@ -61,31 +61,30 @@ def syncGames():
                     traceback.print_exc()
             else:
                 cursor.execute("""
-    INSERT INTO games (id, title, src, cover_src, status, is_deleted, genre, Highlight, start_date, end_date)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ON DUPLICATE KEY UPDATE
-        title = VALUES(title),
-        src = VALUES(src),
-        cover_src = VALUES(cover_src),
-        status = VALUES(status),
-        is_deleted = VALUES(is_deleted),
-        genre = VALUES(genre),
-        Highlight = VALUES(Highlight),
-        start_date = VALUES(start_date),
-        end_date = VALUES(end_date)
-""", (
-    game_id,
-    game.get("title", ""),
-    game.get("src", ""),
-    game.get("cover_src", ""),
-    game.get("status", "0"),
-    game.get("is_deleted", "0"),
-    game.get("genre", ""),
-    game.get("Highlight", ""),
-    game.get("start_date", ""),
-    game.get("end_date", "") 
-))
-
+                    INSERT INTO games (id, title, src, cover_src, status, is_deleted, genre, Highlight, start_date, end_date)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        title = VALUES(title),
+                        src = VALUES(src),
+                        cover_src = VALUES(cover_src),
+                        status = VALUES(status),
+                        is_deleted = VALUES(is_deleted),
+                        genre = VALUES(genre),
+                        Highlight = VALUES(Highlight),
+                        start_date = VALUES(start_date),
+                        end_date = VALUES(end_date)
+                """, (
+                    game_id,
+                    game.get("title", ""),
+                    game.get("src", ""),
+                    game.get("cover_src", ""),
+                    game.get("status", "0"),
+                    game.get("is_deleted", "0"),
+                    game.get("genre", ""),
+                    game.get("Highlight", ""),
+                    game.get("start_date", ""),
+                    game.get("end_date", "") 
+                ))
 
                 logger.info(f"✅ Synced game: {game['title']}")
 

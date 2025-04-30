@@ -137,6 +137,7 @@ async def syncMovies():
                             ad_id=VALUES(ad_id), is_deleted=VALUES(is_deleted), status=VALUES(status)
                     """, movie_data)
                     exists = ''
+                    copy = ""
                     
                     # in case of our matching case:
                     base_path = f"{usb_path}/content/moviesMedia/"
@@ -158,13 +159,19 @@ async def syncMovies():
                             destination_common_folder = Path(destination_folder/ item['TMDbId']/'common')
                             
                             
+                            
                             if source_common_folder.exists() and source_common_folder.is_dir() and destination_common_folder.exists() and destination_common_folder.is_dir():
                                 get_folder_files_details_source      = list_files_with_sizes(source_common_folder)
                                 get_folder_files_details_destination = list_files_with_sizes(destination_common_folder)
-                                # return source_common_folder
+                                # return get_folder_files_details_source
+                                
                                 source_total_files = get_folder_files_details_source['total_files']
                                 destination_total_files = get_folder_files_details_destination['total_files']
                                 
+                                
+                                # return destination_total_files
+                                
+                                # print(f"source total file {source_total_files}")
                                 if source_total_files == destination_total_files:
                                     # copy = f"{item['TMDbId']} is fully fulfilled"
                                     src_files = get_folder_files_details_source["files"]
@@ -185,15 +192,15 @@ async def syncMovies():
                                 else:
                                     # return "kuchh to gadbad hai daya!"
                                     shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
-                                    copy  = f"Copied '{source_folder}' to '{final_destination}'"
+                                    copy = f"kuchh Copied '{source_folder}' to '{final_destination}'"
                             else:
-                                exists =  "no its not exists in movie folder"
+                                exists =  "No its not exists in movie folder"
                         else:
                             exists = "Not exists in box."
 
                             if source_folder.exists() and source_folder.is_dir():
                                 shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
-                                copy  = f"Copied '{source_folder}' to '{final_destination}'"
+                                copy  = f"not exists Copied '{source_folder}' to '{final_destination}'"
                             else:
                                 copy = "Source folder does not exist or is not a directory."
                         
@@ -212,14 +219,14 @@ async def syncMovies():
                     logger.info(f"✅ Upserted movie: {item['title']} (ID: {item['id']})")
 
                 except Exception as e:
-                    logger.error(f"❌ SQL Error for movie ID {item['id']}: {e}")
+                    logger.error(f"X SQL Error for movie ID {item['id']}: {e}")
                     traceback.print_exc()
-                    logger.debug("💡 Data causing error: %s", movie_data)
+                    logger.debug("Data causing error: %s", movie_data)
 
         db.commit()
     except Exception as db_error:
         db.rollback()
-        logger.critical("❌ Fatal DB error. Rolled back transaction.")
+        logger.critical("X Fatal DB error. Rolled back transaction.")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Database operation failed")
     finally:
