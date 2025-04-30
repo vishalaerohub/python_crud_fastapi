@@ -150,9 +150,9 @@ def sync_music_router():
         usb_cover_path = Path(usb_path) / "content/music/cover"
         usb_poster_path = Path(usb_path) / "content/music/poster"
         dest_cover_path = Path(
-            "/home/suhail/Python_Project/python_crud_fastapi/public/cover")
+            "/home/suhail/Python_Project/python_crud_fastapi/public/music/cover")
         dest_poster_path = Path(
-            "/home/suhail/Python_Project/python_crud_fastapi/public/poster")
+            "/home/suhail/Python_Project/python_crud_fastapi/public/music/poster")
 
         # Create destination folders if not exist
         dest_cover_path.mkdir(parents=True, exist_ok=True)
