@@ -1,161 +1,182 @@
-import os
-import shutil
-from pathlib import Path
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
-import requests
 from app.db import get_db_connection
+import os
+import traceback
+import shutil
+import logging
+from pathlib import Path
 from app.utils.getFileSize import list_files_with_sizes
+from app.utils.usbpath import find_usb_mount_path, box_base_path
+from app.utils.database import read_db
 
 router = APIRouter()
+usb_path = find_usb_mount_path()
 
-apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
+# Logging setup
+logging.basicConfig(
+    filename='file_copy.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-def check_folder_existence(folder_path: str):
-    folder_path = Path(folder_path)
-    print(f"Checking if the folder exists: {folder_path}")
-    return folder_path.exists() and folder_path.is_dir()
+
+def safe_remove(path: str):
+    try:
+        os.remove(path)
+        logger.info(f"Removed file: {path}")
+    except FileNotFoundError:
+        logger.warning(f"File not found (skipping): {path}")
+    except Exception as e:
+        logger.error(f"❌ Error removing file {path}: {e}")
+        traceback.print_exc()
+
+
+# apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
+# HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
 @router.get("/syncTvshows")
+
+
+# API_URL = apiEndPointBaseUrl + "syncTvshows"
+    
+    # try:
+    #     response = requests.get(API_URL, headers=HEADERS, timeout=10)
+    #     response.raise_for_status()
+    #     response_data = response.json()
+    # except requests.RequestException as e:
+    #     logger.error(f"❌ API request failed: {e}")
+    #     traceback.print_exc()
+    #     raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+
+    # if not response_data.get("data"):
+    #     raise HTTPException(status_code=404, detail="Data is not available")
+
+    # if response_data.get("status") != 1:
+    #     return {
+    #         "data": "Data not available",
+    #         "status": "false",
+    #         "code": 404
+    #     }
+
 def sync_tv_shows():
-    API_URL = apiEndPointBaseUrl + "syncTvshows"
-    HEADERS = {"partner-id": "AEROADVE20240316A377"}
-
-    try:
-        response = requests.get(API_URL, headers=HEADERS)
-        response.raise_for_status()
-        response_data = response.json()
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching API: {e}")
-
-    if not response_data.get("data"):
-        return JSONResponse(status_code=404, content={"status": False, "message": "No data available"})
-
-    print("✅ API Fetched:", len(response_data["data"]))
-
-    db = get_db_connection()
-    cursor = db.cursor(dictionary=True)
     output = []
+    db = get_db_connection()
 
     try:
-        for item in response_data["data"]:
-            tvshow_id = item.get("id")
+        cursor = db.cursor()
+        tv_data = read_db('tvshows')
+        for item in tv_data:
+            ad_id = item["ad_id"] if item["ad_id"] not in [None, "", "0"] else None
 
-            if item.get("is_deleted") == 1:
-                # Delete associated files
-                for path in [item.get("src"), item.get("p_src"), item.get("bd_src")]:
-                    if not path:
-                        continue
-                    file_path = os.path.join("public", path.strip("/"))
-                    try:
-                        if os.path.isdir(file_path):
-                            shutil.rmtree(file_path, ignore_errors=True)
-                        elif os.path.isfile(file_path):
-                            os.remove(file_path)
-                    except Exception as file_error:
-                        print(f"⚠️ Error deleting file {file_path}: {file_error}")
+            if item["is_deleted"] == "1":
+                try:
+                    shutil.rmtree(os.path.join("public", item["src"]), ignore_errors=True)
+                    safe_remove(os.path.join("public", item["p_src"]))
+                    safe_remove(os.path.join("public", item["bd_src"]))
+                    logger.info(f" Deleted files for TV show ID {item['id']}")
+                except Exception as e:
+                    logger.warning(f" Error deleting files for TV show ID {item['id']}: {e}")
+                    traceback.print_exc()
 
-                # Delete from database
-                cursor.execute("DELETE FROM tvshows WHERE id = %s", (tvshow_id,))
-                db.commit()
-                output.append({"status": 200, "message": "Tvshow deleted", "id": tvshow_id})
+                cursor.execute("DELETE FROM tvshows WHERE id = %s", (item["id"],))
+                logger.info(f" Deleted TV show ID {item['id']} from database")
+                continue
 
-            else:
-                ad_id = item.get("ad_id") if item.get("ad_id", 0) > 0 else None
-
-                tv_data = (
-                    tvshow_id, item.get("lang"), item.get("title"), item.get("display_title"), item.get("media_type"), item.get("genre"),
-                    item.get("distributor"), item.get("synopsis"), item.get("year"), item.get("duration"),
-                    item.get("TMDbId"), item.get("src"), item.get("p_src"), item.get("bd_src"),
-                    item.get("rating"), item.get("Highlight"), item.get("cast"), item.get("direction"),
-                    item.get("position"), item.get("start_date"), item.get("end_date"), ad_id,
-                    item.get("is_deleted"), str(item.get("status")), item.get("type"),
-                    item.get("attached_id"), item.get("episode_num")
+            tvshow_data = (
+                 item["id"], item["lang"], item["title"], item["display_title"], item["media_type"],
+                 item["genre"], item["distributor"], str(item["synopsis"]), item["year"],
+                 item["duration"], item["TMDbId"], item["src"], item["p_src"], item["bd_src"],
+                 item["rating"], item["highlight"], item["cast"], item["direction"], item["position"],
+                 item["start_date"], item["end_date"], ad_id, item["is_deleted"], str(item["status"]),
+                 item["type"], item["attached_id"], item["episode_num"]
                 )
 
+            try:
                 cursor.execute("""
                     INSERT INTO tvshows (
                         id, lang, title, display_title, media_type, genre, distributor, synopsis, year, duration,
-                        TMDbId, src, p_src, bd_src, rating, highlight, cast, direction,
-                        position, start_date, end_date, ad_id, is_deleted, status, type,
-                        attached_id, episode_num
+                        TMDbId, src, p_src, bd_src, rating, Highlight, cast, direction,
+                        position, start_date, end_date, ad_id, is_deleted, status,
+                        type, attached_id, episode_num
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s
                     )
                     ON DUPLICATE KEY UPDATE
-                        lang=VALUES(lang), title=VALUES(title), display_title=VALUES(display_title), media_type=VALUES(media_type),
-                        genre=VALUES(genre), distributor=VALUES(distributor), synopsis=VALUES(synopsis),
-                        year=VALUES(year), duration=VALUES(duration), TMDbId=VALUES(TMDbId),
-                        src=VALUES(src), p_src=VALUES(p_src), bd_src=VALUES(bd_src), rating=VALUES(rating),
-                        highlight=VALUES(highlight), cast=VALUES(cast), direction=VALUES(direction),
-                        position=VALUES(position), start_date=VALUES(start_date), end_date=VALUES(end_date),
+                        lang=VALUES(lang), title=VALUES(title), display_title=VALUES(display_title),
+                        media_type=VALUES(media_type), genre=VALUES(genre), distributor=VALUES(distributor),
+                        synopsis=VALUES(synopsis), year=VALUES(year), duration=VALUES(duration),
+                        TMDbId=VALUES(TMDbId), src=VALUES(src), p_src=VALUES(p_src), bd_src=VALUES(bd_src),
+                        rating=VALUES(rating), Highlight=VALUES(Highlight), cast=VALUES(cast),
+                        direction=VALUES(direction), position=VALUES(position),
+                        start_date=VALUES(start_date), end_date=VALUES(end_date),
                         ad_id=VALUES(ad_id), is_deleted=VALUES(is_deleted), status=VALUES(status),
                         type=VALUES(type), attached_id=VALUES(attached_id), episode_num=VALUES(episode_num)
-                """, tv_data)
+                """, tvshow_data)
 
-                # === Copying logic ===
-                exists = ''
-                copy = ''
+                exists = ""
+                copy = ""
+                base_path = os.path.join(usb_path, "/media/suhail/891D-C373/content/tvshows")
+                source_folder_path = os.path.join(base_path, item["TMDbId"])
+                destination_folder_path = os.path.join(box_base_path(),"/home/suhail/Python_Project/python_crud_fastapi/public/tvshows", item["TMDbId"])
 
-                base_path = "/media/vishal/891D-C373/content/tvshows"
-                usb_folder_path = os.path.join(base_path, str(item['TMDbId']))
-                if check_folder_existence(usb_folder_path):
-                    source_folder = Path(usb_folder_path)
-                    destination_folder = Path(f"/home/vishal/aerohub/python_crud_fastapi/public/tvshows")
-                    destination_folder.mkdir(parents=True, exist_ok=True)
-                    final_destination = destination_folder / source_folder.name
-
-                    box_folder_path = os.path.join(str(destination_folder), str(item['TMDbId']))
-                    if check_folder_existence(box_folder_path):
-                        source_common = Path(source_folder / 'common')
-                        dest_common = Path(destination_folder / item['TMDbId'] / 'common')
-
+                if os.path.isdir(source_folder_path):
+                    # If already exists in box
+                    if os.path.isdir(destination_folder_path):
+                        source_common = Path(os.path.join(source_folder_path, "common"))
+                        dest_common = Path(os.path.join(destination_folder_path, "common"))
                         if source_common.exists() and dest_common.exists():
-                            source_files = list_files_with_sizes(source_common)['files']
-                            dest_files = list_files_with_sizes(dest_common)['files']
+                            src_files = list_files_with_sizes(source_common)["files"]
+                            dst_files = list_files_with_sizes(dest_common)["files"]
 
-                            src_files_set = {(f["name"], f["size_bytes"]) for f in source_files}
-                            des_files_set = {(f["name"], f["size_bytes"]) for f in dest_files}
+                            dst_file_set = {(f["name"], f["size_bytes"]) for f in dst_files}
 
-                            for file in source_files:
-                                if (file["name"], file["size_bytes"]) not in des_files_set:
-                                    src_path = os.path.join(source_common, file["name"])
-                                    dest_path = os.path.join(dest_common, file["name"])
-                                    print(f"Copying {file['name']}...")
-                                    shutil.copy2(src_path, dest_path)
-                            copy = "Some files copied."
-                        else:
-                            shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
-                            copy = f"Copied folder to: {final_destination}"
+                            for file in src_files:
+                                key = (file["name"], file["size_bytes"])
+                                if key not in dst_file_set:
+                                    try:
+                                        shutil.copy2(source_common / file["name"], dest_common / file["name"])
+                                    except Exception as file_err:
+                                        logger.warning(f"Failed to copy {file['name']}: {file_err}")
                     else:
                         exists = "Not exists in box."
-                        shutil.copytree(source_folder, final_destination, dirs_exist_ok=True)
-                        copy = f"Copied folder to: {final_destination}"
+                        try:
+                            shutil.copytree(source_folder_path, destination_folder_path, dirs_exist_ok=True)
+                            copy = f"Copied {source_folder_path} to {destination_folder_path}"
+                        except Exception as copy_err:
+                            copy = f"Failed to copy: {copy_err}"
                 else:
-                    exists = "Folder does not exist in Pendrive."
+                    exists = "Folder does not exist."
 
                 output.append({
-                    "tvshow_id": tvshow_id,
+                    "tvshow_id": item['id'],
                     "message": f"{item['title']} has been updated",
                     "status": "true",
                     "code": "200",
                     "is_exists": exists,
                     "copied": copy
                 })
-                print(f"✅ Upserted tvshow: {item['title']} (ID: {item['id']})")
+
+                logger.info(f"Upserted TV show: {item['title']} (ID: {item['id']})")
+
+            except Exception as e:
+                logger.error(f"SQL Error for TV show ID {item['id']}: {e}")
+                traceback.print_exc()
+                logger.debug("Data causing error: %s", tvshow_data)
 
         db.commit()
-        output.append({"status": 200, "message": "Tvshow synced and media copied", "id": tvshow_id})
 
     except Exception as db_error:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"DB Error: {db_error}")
+        logger.critical(" Fatal DB error. Rolled back transaction.")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Database operation failed")
+
     finally:
         db.close()
+        logger.info("🔒 Database connection closed.")
 
-    return {
-        "status": True,
-        "message": "Sync complete",
-        "results": output
-    }
+    return output

@@ -6,42 +6,48 @@ from app.utils.downloader import downloadAndSaveFile
 import requests
 import traceback
 import logging
+from app.utils.database import read_db
+from app.utils.usbpath import find_usb_mount_path, box_base_path
+usb_path = find_usb_mount_path()
 
 router = APIRouter()
 
-apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
-HEADERS = {"partner-id": "AEROADVE20240316A377"}
+#apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
+#HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @router.get("/syncMagazine")
 def syncMagazine():
-    API_URL = apiEndPointBaseUrl + "syncMagazine"
-    try:
-        response = requests.get(API_URL, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        response_data = response.json()
-    except requests.RequestException as e:
-        logger.error(f"❌ API request failed: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+    #API_URL = apiEndPointBaseUrl + "syncMagazine"
+    #try:
+      #  response = requests.get(API_URL, headers=HEADERS, timeout=10)
+      #  response.raise_for_status()
+       # response_data = response.json()
+    #except requests.RequestException as e:
+      #  logger.error(f"❌ API request failed: {e}")
+        #traceback.print_exc()
+      #  raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
 
-    if not response_data.get("data"):
-        raise HTTPException(status_code=404, detail="Data is not available")
+    #if not response_data.get("data"):
+      #  raise HTTPException(status_code=404, detail="Data is not available")
 
-    if response_data.get("status") != 1:
-        return {
-            "data": "Data not available",
-            "status": "false",
-            "code": 404
-        }
+    #if response_data.get("status") != 1:
+      #  return {
+       #     "data": "Data not available",
+       #     "status": "false",
+      #      "code": 404
+      #  }
 
     output = []
     db = get_db_connection()
     try:
+
+        
         cursor = db.cursor()
-        for item in response_data["data"]:
+        magazine_data = read_db('magazine')
+        for item in magazine_data:
             if item["status"] == 1:
                 if item.get("path"):
                     saved_path = downloadAndSaveFile(item["path"], "magazines")
