@@ -140,7 +140,7 @@ async def syncMovies():
                     exists = ''
                     copy = ""
                     
-                    # in case of our matching case:
+                    # in case of our matching case
                     base_path = f"{usb_path}/content/moviesMedia/"
                     if os.path.isdir(base_path + item['TMDbId']): #its cheking from pendrive
                         
