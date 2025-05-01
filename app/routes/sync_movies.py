@@ -3,11 +3,11 @@ from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json
 from app.utils.getFileSize import list_files_with_sizes, list_folders_with_sizes
-# from app.utils.downloader import downloadAndSaveFile
-# from fastapi.responses import JSONResponse
+
 from pathlib import Path
 import logging
 from app.utils.usbpath import find_usb_mount_path, box_base_path
+from app.utils.database import read_db
 
 usb_path = find_usb_mount_path()
 
@@ -33,39 +33,40 @@ def safe_remove(path: str):
         traceback.print_exc()
 
 
-apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
-HEADERS = {"partner-id": "AEROADVE20240316A377"}
+# apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
+# HEADERS = {"partner-id": "AEROADVE20240316A377"}
 
 @router.get("/syncMovies")
 async def syncMovies():
-    API_URL = apiEndPointBaseUrl + "syncMovies"
+    # API_URL = apiEndPointBaseUrl + "syncMovies"
+    
+    # try:
+    #     response = requests.get(API_URL, headers=HEADERS, timeout=10)
+    #     response.raise_for_status()
+    #     response_data = response.json()
+    # except requests.RequestException as e:
+    #     logger.error(f"❌ API request failed: {e}")
+    #     traceback.print_exc()
+    #     raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
 
-    try:
-        response = requests.get(API_URL, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        response_data = response.json()
-    except requests.RequestException as e:
-        logger.error(f"❌ API request failed: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
+    # if not response_data.get("data"):
+    #     raise HTTPException(status_code=404, detail="Data is not available")
 
-    if not response_data.get("data"):
-        raise HTTPException(status_code=404, detail="Data is not available")
-
-    if response_data.get("status") != 1:
-        return {
-            "data": "Data not available",
-            "status": "false",
-            "code": 404
-        }
+    # if response_data.get("status") != 1:
+    #     return {
+    #         "data": "Data not available",
+    #         "status": "false",
+    #         "code": 404
+    #     }
 
     output = []
     db = get_db_connection()
 
     try:
-        return response_data["data"]
         cursor = db.cursor()
-        for item in response_data["data"]:
+        movie_data = read_db('movies')
+        for item in movie_data:
+
             ad_id = item["ad_id"] if item["ad_id"] not in [None, "", "0"] else None
 
             if item["is_deleted"] == "1":
