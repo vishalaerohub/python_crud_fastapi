@@ -105,7 +105,7 @@ def sync_music_router():
 
                 # ===== File Copy Logic =====
                 usb_base_path = Path(usb_path) / "content/music/Songs"
-                box_base_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/music/Songs")
+                box_base_path = Path("/home/vishal/aerohub/python_crud_fastapi/public/music/Songs")
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)

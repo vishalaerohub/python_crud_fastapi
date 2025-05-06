@@ -62,7 +62,6 @@ async def syncMovies():
 
     output = []
     db = get_db_connection()
-
     try:
         cursor = db.cursor()
         movie_data = read_db('movies')
