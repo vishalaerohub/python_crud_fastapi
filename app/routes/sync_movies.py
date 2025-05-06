@@ -57,7 +57,7 @@ async def syncMovies():
     #     return {
     #         "data": "Data not available",
     #         "status": "false",
-    #         "code": 404
+    #         "code": 404 
     #     }
 
     output = []
