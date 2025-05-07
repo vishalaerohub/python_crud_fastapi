@@ -6,7 +6,6 @@ import logging
 from pathlib import Path
 import shutil
 import requests
-
 from app.utils.getFileSize import list_files_with_sizes
 from app.utils.dateParse import parse_date
 from app.utils.usbpath import find_usb_mount_path
