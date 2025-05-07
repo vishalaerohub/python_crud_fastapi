@@ -105,7 +105,7 @@ def sync_music_router():
 
                 # ===== File Copy Logic =====
                 usb_base_path = Path(usb_path) / "content/music/Songs"
-                box_base_path = Path("/home/vishal/aerohub/python_crud_fastapi/public/music/Songs")
+                box_base_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/Songs")
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)
@@ -150,8 +150,8 @@ def sync_music_router():
     try:
         usb_cover_path = Path(usb_path) / "content/music/cover"
         usb_poster_path = Path(usb_path) / "content/music/poster"
-        dest_cover_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/music/cover")
-        dest_poster_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/music/poster")
+        dest_cover_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/cover")
+        dest_poster_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/poster")
 
         dest_cover_path.mkdir(parents=True, exist_ok=True)
         dest_poster_path.mkdir(parents=True, exist_ok=True)
@@ -177,5 +177,19 @@ def sync_music_router():
 
     db.commit()
     db.close()
+
+    return output
+
+from app.utils.usbpath import find_usb_mount_path
+import csv
+usb_path = find_usb_mount_path()
+
+def read_db(db_name):
+    sql_path = f"{usb_path}/content/database/{db_name}.csv"
+    with open(sql_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        output = []
+        for row in reader:
+            output.append(row)
 
     return output
