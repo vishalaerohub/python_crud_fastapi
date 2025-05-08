@@ -3,11 +3,13 @@ from app.db import get_db_connection
 import requests, os, traceback, shutil, logging, json
 from app.utils.dateParse import parse_date
 from app.utils.downloader import downloadAndSaveFile
+from app.utils.database import read_db
 from fastapi.responses import JSONResponse
 
 import subprocess
 import re
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path, box_base_path
+from pathlib import Path
 
 usb_path = find_usb_mount_path()
 
@@ -33,42 +35,46 @@ def safe_remove(path: str):
 
 @router.get("/syncAdvertisement")
 def syncAdvertisement():
-    API_URL = apiEndPointBaseUrl + "syncAdvertisement"
-    try:
-        response = requests.get(API_URL, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        response_data = response.json()
-    except requests.RequestException as e:
-        logger.error(f"❌ API request failed: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
-
-    if not response_data.get("data"):
-        raise HTTPException(status_code=404, detail="Data is not available")
-    
-    if response_data.get("status") != 1:
-        return {
-            "data": "Data not available",
-            "status": "false",
-            "code": 404
-        }
     output = []
     db = get_db_connection()
     
     # return response_data["data"]
     try:
         cursor = db.cursor()
+        advertisements = read_db('advertisements')
         
-        for item in response_data["data"]:
-            created_at = parse_date(item['createdAt'])
-            updated_at = parse_date(item['updatedAt'])
+        # return advertisements
+        base_path = f"{usb_path}/content/desktop_carousels/"
+        for item in advertisements:
+            created_at = item['created_at']
+            updated_at = item['updated_at']
             ad_id = item["id"]
             url = item['url']
             
             if item['advertise_type'] == 'Carousel':
-                downloadAndSaveFile(item['desktop_url'], 'desktop_carousels')
+                # start download file from pendrive
+                desktop_url = os.path.basename(item['desktop_url'])
+                url = os.path.basename(item['url'])
                 
-                downloadAndSaveFile(item['url'], 'mobile_carousels')
+                desktop_source_folder = Path(base_path+ desktop_url)
+                desktop_destination_folder = Path(f"{box_base_path()}/desktop_carousels")
+                
+                desktop_destination_folder.mkdir(parents=True, exist_ok=True)
+                desktop_final_destination = desktop_destination_folder / desktop_source_folder.name
+                
+                shutil.copy2(desktop_source_folder, desktop_final_destination)
+                
+                # downloadAndSaveFile(item['desktop_url'], 'desktop_carousels')
+                
+                mobile_source_folder = Path(base_path+ desktop_url)
+                mobile_destination_folder = Path(f"{box_base_path()}/mobile_carousels")
+                
+                mobile_destination_folder.mkdir(parents=True, exist_ok=True)
+                mobile_final_destination = mobile_destination_folder / mobile_source_folder.name
+                
+                shutil.copy2(mobile_source_folder, mobile_final_destination)
+                
+                # downloadAndSaveFile(item['url'], 'mobile_carousels')
             else:
                 downloadAndSaveFile(url, 'videos')
                 
@@ -299,17 +305,5 @@ def get_device_id():
     except Exception as e:
         print("Error getting MAC address:", str(e))
         return None
-    
-
-
-# @router.get("/usb-path")
-# def get_usb_path():
-#     usb_path = find_usb_mount_path()
-#     return usb_path
-#     if usb_path:
-#         base_path = os.path.join(usb_path)
-#         return {"status": "success", "base_path": base_path}
-#     else:
-#         return {"status": "error", "message": "No USB drive detected"}
     
     
