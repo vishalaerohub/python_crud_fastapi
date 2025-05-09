@@ -3,7 +3,7 @@ from app.db import get_db_connection
 from app.utils.database import read_db
 import os, logging, traceback, shutil
 from pathlib import Path
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path , box_base_path
 
 
 usb_path = find_usb_mount_path()
@@ -48,8 +48,8 @@ def sync_cityscape():
             try:
                 usb_pdf_path = Path(usb_path)/ "content/cityscape_pdf"
                 usb_thumbs_path = Path(usb_path)/ "content/cityscape_thumbnails"
-                dest_pdf_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/cityscape_pdf")
-                dest_thumbs_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/cityscape_thumbnails")
+                dest_pdf_path = Path(f"{box_base_path()}cityscape_pdf")
+                dest_thumbs_path = Path(f"{box_base_path()}cityscape_thumbnails")
 
                 dest_pdf_path.mkdir(parents=True, exist_ok=True)
                 dest_thumbs_path.mkdir(parents=True, exist_ok=True)
