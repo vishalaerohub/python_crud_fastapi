@@ -156,7 +156,7 @@ async def syncMovies():
                         final_destination = destination_folder / source_folder.name
                         
                         # now check folder existance in box or code repo
-                        if os.path.isdir(f"/home/vishal/aerohub/python_crud_fastapi/public/moviesMedia/{item['TMDbId']}"):
+                        if os.path.isdir(f"{box_base_path()}moviesMedia/{item['TMDbId']}"):
                             # now check each file from movies folder and their chunks file based on counting and size
                             source_common_folder      = Path(source_folder/ 'common')
                             destination_common_folder = Path(destination_folder/ item['TMDbId']/'common')
