@@ -5,7 +5,9 @@ import traceback
 import logging
 from pathlib import Path
 import shutil
+
 import requests
+
 from app.utils.getFileSize import list_files_with_sizes
 from app.utils.dateParse import parse_date
 from app.utils.usbpath import find_usb_mount_path
@@ -21,40 +23,13 @@ logging.basicConfig(level=logging.INFO)
 # FastAPI router
 router = APIRouter()
 
-#apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
-#EADERS = {"partner-id": "AEROADVE20240316A377"}
-
-
 @router.get("/sync-music")
 def sync_music_router():
-   # API_URL = apiEndPointBaseUrl + "syncMusics"
-
-    #try:
-    #    response = requests.get(API_URL, headers=HEADERS, timeout=10)
-    #    response.raise_for_status()
-     #   response_data = response.json()
-    #except requests.RequestException as e:
-    #    logger.error(f"❌ API request failed: {e}")
-    #    traceback.print_exc()
-     #   raise HTTPException(status_code=500, detail=f"API call failed: {str(e)}")
-
-    #if not response_data.get("data"):
-    #    raise HTTPException(status_code=404, detail="Data is not available")
-
-    #if response_data.get("status") != 1:
-     #   return {
-     #       "data": "Data not available",
-     #       "status": "false",
-     #       "code": 404
-       # }
-
     songs = read_db("Songs")
 
     db = get_db_connection()
     cursor = db.cursor()
     output = []
-
-
 
     for song in songs:
         song_id = song["id"]
@@ -73,7 +48,7 @@ def sync_music_router():
                 # Delete from DB
                 cursor.execute("DELETE FROM songs WHERE id = %s", (song_id,))
             else:
-                # Parse dates safely
+                # Parse dates
                 created_at = parse_date(song.get("createdAt")) if song.get("createdAt") else None
                 updated_at = parse_date(song.get("updatedAt")) if song.get("updatedAt") else None
 
@@ -102,40 +77,48 @@ def sync_music_router():
                     song.get("start_date"), song.get("end_date"), created_at, updated_at
                 ))
 
-                # ===== File Copy Logic =====
+                # ===== File Copy with Size Check =====
+                exists = ""
+                copied = ""
                 usb_base_path = Path(usb_path) / "content/music/Songs"
-                box_base_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/Songs")
+
+                box_base_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/music/Songs")
+
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)
 
-                parts = song_relative_path.split("/")
-                if len(parts) < 3:
-                    logger.warning(f"Invalid song_path format: {song['song_path']}")
-                    continue
-
                 source_path = usb_base_path / file_name
                 destination_path = box_base_path / file_name
 
-                logger.info(f"🔍 Checking source: {source_path}")
-                logger.info(f"📌 Destination path: {destination_path}")
+                if source_path.exists():
+                    destination_path.parent.mkdir(parents=True, exist_ok=True)
+                    src_size = source_path.stat().st_size
 
-                try:
-                    if source_path.exists():
-                        destination_path.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(source_path, destination_path)
-                        logger.info(f"✅ Copied: {file_name}")
+                    if destination_path.exists():
+                        dst_size = destination_path.stat().st_size
+                        if src_size != dst_size:
+                            shutil.copy2(source_path, destination_path)
+                            copied = f"File copied: {file_name}"
+                            logger.info(copied)
+                        else:
+                            exists = f"File already exists with same size: {file_name}"
+                            logger.info(exists)
                     else:
-                        logger.warning(f"⚠️ Source file not found: {source_path}")
-                except Exception as copy_err:
-                    logger.error(f"❌ Error copying file {file_name}: {copy_err}")
+                        shutil.copy2(source_path, destination_path)
+                        copied = f"File copied: {file_name}"
+                        logger.info(copied)
+                else:
+                    logger.warning(f"Source file not found: {source_path}")
 
                 output.append({
                     "song_id": song['id'],
                     "title": song['title'],
                     "message": f"'{song['title']}' has been synced.",
                     "status": "true",
-                    "code": "200"
+                    "code": "200",
+                    "is_exists": exists,
+                    "copied": copied
                 })
 
         except Exception as e:
@@ -145,7 +128,7 @@ def sync_music_router():
             raise HTTPException(
                 status_code=500, detail=f"Error syncing song ID {song_id}: {str(e)}")
 
-    # ===== Copy cover and poster folders from USB to box =====
+    # ===== Cover and Poster Folder Copy =====
     try:
         usb_cover_path = Path(usb_path) / "content/music/cover"
         usb_poster_path = Path(usb_path) / "content/music/poster"
@@ -157,18 +140,21 @@ def sync_music_router():
 
         def copy_folder(source: Path, destination: Path):
             if not source.exists():
-                logger.warning(f"⚠️ Source folder does not exist: {source}")
+                logger.warning(f" Source folder does not exist: {source}")
                 return
             for file in source.iterdir():
                 if file.is_file():
                     dest_file = destination / file.name
-                    shutil.copy2(file, dest_file)
-                    logger.info(f"✅ Copied: {file.name} to {destination}")
+                    try:
+                        shutil.copy2(file, dest_file)
+                        logger.info(f"Copied: {file.name}")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to copy {file.name}: {e}")
 
-        logger.info("📁 Copying cover images...")
+        logger.info("Copying cover images...")
         copy_folder(usb_cover_path, dest_cover_path)
 
-        logger.info("📁 Copying poster images...")
+        logger.info("Copying poster images...")
         copy_folder(usb_poster_path, dest_poster_path)
 
     except Exception as folder_err:

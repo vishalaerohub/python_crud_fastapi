@@ -1,42 +1,19 @@
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
-from app.utils.downloader import downloadAndSaveFile
-import requests, os, logging, traceback
 from app.utils.database import read_db
+import os, logging, traceback, shutil
+from pathlib import Path
+from app.utils.usbpath import find_usb_mount_path
+
+
+usb_path = find_usb_mount_path()
+
 
 router = APIRouter()
-
-# apiEndPointBaseUrl = "https://ifeanalytics-api.aerohub.aero/api/deviceContent/"
-# HEADERS = {"partner-id": "AEROADVE20240316A377"}
-
 logger = logging.getLogger(__name__)
-
-def safe_remove(path: str):
-    try:
-        os.remove(path)
-        logger.info(f"✅ Removed file: {path}")
-    except FileNotFoundError:
-        logger.warning(f"⚠️ File not found (skipping): {path}")
-    except Exception as e:
-        logger.error(f"❌ Error removing file {path}: {e}")
-        traceback.print_exc()
 
 @router.get("/syncCityscape")
 def sync_cityscape():
-    # API_URL = apiEndPointBaseUrl + "syncCityscape"
-
-    # try:
-    #     response = requests.get(API_URL, headers=HEADERS, timeout=10)
-    #     response.raise_for_status()
-    #     data = response.json()
-    # except requests.RequestException as e:
-    #     logger.error(f"❌ API request failed: {e}")
-    #     traceback.print_exc()
-    #     raise HTTPException(status_code=500, detail="API call failed")
-
-    # if not data.get("data"):
-    #     raise HTTPException(status_code=404, detail="Data is not available")
-
     output = []
     db = get_db_connection()
     cursor = db.cursor()
@@ -45,20 +22,6 @@ def sync_cityscape():
         cityscape_data = read_db('city_scapes')
         for item in cityscape_data:
             cityscape_id = item["id"]
-
-            # if item["is_deleted"] == 1:
-            #     # Delete files
-            #     pdf_path = os.path.join("public", "cityscape_pdf", os.path.basename(item["pdf_path"]))
-            #     thumb_path = os.path.join("public", "cityscape_thumbnails", os.path.basename(item["thumbnail"]))
-
-            #     safe_remove(pdf_path)
-            #     safe_remove(thumb_path)
-                
-            #     cursor.execute("DELETE FROM city_scapes WHERE cityscape_id = %s", (cityscape_id,))
-            #     logger.info(f"❌ Deleted cityscape ID {cityscape_id}")
-
-            # else:
-                # Insert or update
             slug = item["city_name"].replace(" ", "-").lower()
             cityscape_data = (
                 cityscape_id,
@@ -81,12 +44,33 @@ def sync_cityscape():
                     status=VALUES(status)
             """, cityscape_data)
 
-            if item["pdf_path"]:
-                downloadAndSaveFile(item["pdf_path"], "cityscape_pdf")
-            if item["thumbnail"]:
-                downloadAndSaveFile(item["thumbnail"], "cityscape_thumbnails")
+            # ===== Copy cityscape_pdf and cityscape_thumbnails files =====
+            try:
+                usb_pdf_path = Path(usb_path)/ "content/cityscape_pdf"
+                usb_thumbs_path = Path(usb_path)/ "content/cityscape_thumbnails"
+                dest_pdf_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/cityscape_pdf")
+                dest_thumbs_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/cityscape_thumbnails")
 
-            logger.info(f"✅ Synced cityscape ID {cityscape_id} - {item['city_name']}")
+                dest_pdf_path.mkdir(parents=True, exist_ok=True)
+                dest_thumbs_path.mkdir(parents=True, exist_ok=True)
+
+                def copy_file(filename: str, src_dir: Path, dest_dir: Path):
+                    if filename:
+                        source_file = src_dir / os.path.basename(filename)
+                        dest_file = dest_dir / os.path.basename(filename)
+                        if source_file.exists():
+                            shutil.copy2(source_file, dest_file)
+                            logger.info(f"Copied: {source_file} → {dest_file}")
+                        else:
+                            logger.warning(f"File not found: {source_file}")
+
+                copy_file(item["pdf_path"], usb_pdf_path, dest_pdf_path)
+                copy_file(item["thumbnail"], usb_thumbs_path, dest_thumbs_path)
+
+            except Exception as copy_err:
+                logger.error(f"Error copying cityscape files: {copy_err}")
+
+            logger.info(f"Synced cityscape ID {cityscape_id} - {item['city_name']}")
             output.append({
                 "cityscape_id": cityscape_id,
                 "message": f"{item['city_name']} synced successfully",
@@ -101,5 +85,6 @@ def sync_cityscape():
         raise HTTPException(status_code=500, detail="Error while syncing cityscape")
     finally:
         db.close()
+        logger.info("🔒 Database connection closed.")
 
     return output
