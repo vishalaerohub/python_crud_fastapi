@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 from app.utils.database import read_db
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path,box_base_path
 from pathlib import Path
 import shutil
 import logging
@@ -65,8 +65,8 @@ def sync_magazine():
         try:
             usb_magazines_path = Path(usb_path) / "content/magazines"
             usb_magazine_thumbnails_path = Path(usb_path) / "content/magazine_thumbnails"
-            dest_magazines_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/magazines")
-            dest_magazine_thumbnails_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/magazine_thumbnails")
+            dest_magazines_path = Path(f"{box_base_path()}magazines")
+            dest_magazine_thumbnails_path = Path(f"{box_base_path()}magazine_thumbnails")
 
             dest_magazines_path.mkdir(parents=True, exist_ok=True)
             dest_magazine_thumbnails_path.mkdir(parents=True, exist_ok=True)
