@@ -82,14 +82,14 @@ def sync_music_router():
                 copied = ""
                 usb_base_path = Path(usb_path) / "content/music/Songs"
 
-                box_base_path = Path(f"{box_base_path()} music/Songs")
+                dis_base_path = Path(f"{box_base_path()}music/Songs")
 
 
                 song_relative_path = song["song_path"].lstrip("/")
                 file_name = os.path.basename(song_relative_path)
 
                 source_path = usb_base_path / file_name
-                destination_path = box_base_path / file_name
+                destination_path = dis_base_path / file_name
 
                 if source_path.exists():
                     destination_path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,8 +132,8 @@ def sync_music_router():
     try:
         usb_cover_path = Path(usb_path) / "content/music/cover"
         usb_poster_path = Path(usb_path) / "content/music/poster"
-        dest_cover_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/cover")
-        dest_poster_path = Path("/home/suhail/Python_Data/python_crud_fastapi/public/music/poster")
+        dest_cover_path = Path(f"{box_base_path()}music/cover")
+        dest_poster_path = Path(f"{box_base_path()}music/poster")
 
         dest_cover_path.mkdir(parents=True, exist_ok=True)
         dest_poster_path.mkdir(parents=True, exist_ok=True)

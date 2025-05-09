@@ -44,6 +44,7 @@ def syncGames():
     db = get_db_connection()
     cursor = db.cursor()
     output = []
+    
 
     try:
         for game in games:
@@ -102,7 +103,7 @@ def syncGames():
         try:
             usb_path = find_usb_mount_path()
             usb_games_path = Path(usb_path) / "content/games"
-            dest_games_path = Path(f"{box_base_path()}games")
+            dest_games_path = Path(f"{box_base_path()} games")
 
             dest_games_path.mkdir(parents=True, exist_ok=True)
 
