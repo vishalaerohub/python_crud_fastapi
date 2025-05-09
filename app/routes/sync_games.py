@@ -3,7 +3,7 @@ from app.db import get_db_connection
 import requests, os, shutil, traceback, logging
 from app.utils.database import read_db
 from pathlib import Path
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path,box_base_path
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ def syncGames():
         try:
             usb_path = find_usb_mount_path()
             usb_games_path = Path(usb_path) / "content/games"
-            dest_games_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/games")
+            dest_games_path = Path(f"{box_base_path()}games")
 
             dest_games_path.mkdir(parents=True, exist_ok=True)
 

@@ -10,7 +10,7 @@ import requests
 
 from app.utils.getFileSize import list_files_with_sizes
 from app.utils.dateParse import parse_date
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path, box_base_path
 from app.utils.database import read_db
 
 # USB mount path
@@ -82,7 +82,7 @@ def sync_music_router():
                 copied = ""
                 usb_base_path = Path(usb_path) / "content/music/Songs"
 
-                box_base_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/music/Songs")
+                box_base_path = Path(f"{box_base_path()} music/Songs")
 
 
                 song_relative_path = song["song_path"].lstrip("/")

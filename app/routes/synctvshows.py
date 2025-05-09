@@ -121,7 +121,7 @@ def sync_tv_shows():
                 copy = ""
                 base_path = os.path.join(f"{usb_path}/content/tvshows")
                 source_folder_path = os.path.join(base_path, item["TMDbId"])
-                destination_folder_path = os.path.join(box_base_path(),"/home/vishal/aerohub/python_crud_fastapi/public/tvshows", item["TMDbId"])
+                destination_folder_path = os.path.join(f"{box_base_path()}tvshows", item["TMDbId"])
 
                 if os.path.isdir(source_folder_path):
                     # If already exists in box

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.db import get_db_connection
 import os, logging, traceback, shutil
 from app.utils.database import read_db
-from app.utils.usbpath import find_usb_mount_path
+from app.utils.usbpath import find_usb_mount_path, box_base_path
 from pathlib import Path
 
 usb_path = find_usb_mount_path()
@@ -67,7 +67,7 @@ async def sync_shopping():
         try:
             
             usb_shopping_path = Path(usb_path) / "content/shopping"
-            dest_shopping_path = Path("/home/suhail/Python_Project/python_crud_fastapi/public/shopping")
+            dest_shopping_path = Path(f"{box_base_path()}shopping")
 
             dest_shopping_path.mkdir(parents=True, exist_ok=True)
 
