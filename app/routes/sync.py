@@ -32,6 +32,11 @@ def safe_remove(path: str):
         logger.error(f"❌ Error removing file {path}: {e}")
         traceback.print_exc()
 
+@router.get('/get-usb')
+def get_usb():
+    return {
+        "data": usb_path
+    }
 
 @router.get("/syncAdvertisement")
 def syncAdvertisement():
