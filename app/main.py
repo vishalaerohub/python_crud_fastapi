@@ -10,12 +10,12 @@ from app.routes.sync_games import router as syncgames_router
 from app.routes.sync_shopping import router as syncshopping_router
 from app.routes.sync_cityscape import router as sync_cityscape_router
 from app.routes.sync_music import router as sync_music_router
-from app.routes.database import router as sync_db_router
+# from app.routes.database import router as sync_db_router
 from app.routes.sync_music_playlists import router as sync_music_playlists_router
 
 app = FastAPI()
 
-app.include_router(sync_db_router)
+# app.include_router(sync_db_router)
 app.include_router(sync_movie_router)
 app.include_router(synctvshows_router)
 app.include_router(sync_router)

@@ -81,7 +81,14 @@ def syncAdvertisement():
                 
                 # downloadAndSaveFile(item['url'], 'mobile_carousels')
             else:
-                downloadAndSaveFile(url, 'videos')
+                video_source_folder = Path(base_path+ url)
+                video_destination_folder = Path(f"{box_base_path()}/videos")
+                
+                video_destination_folder.mkdir(parents=True, exist_ok=True)
+                video_final_destination = video_destination_folder / video_source_folder.name
+                
+                shutil.copy2(mobile_source_folder, video_final_destination)
+                # downloadAndSaveFile(url, 'videos')
                 
             ad_data = (
                 item.get("id"),
