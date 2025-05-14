@@ -27,39 +27,40 @@ def sync_magazine():
 
 
         for item in magazine_data:
-            if int(item["status"]) == 1:
+            # if int(item["status"]) == 1:
 
-                magazine_data = (
-                    item["id"],
-                    item["name"],
-                    item["language"],
-                    item["path"],
-                    item["thumbnail"],
-                    item["status"],
-                    item["magazine_date"],
-                    item["size"],
-                    item["file_format"]
-                )
+            magazine_data = (
+                item["id"],
+                item["name"],
+                item["language"],
+                item["path"],
+                item["thumbnail"],
+                item["status"],
+                item["magazine_date"],
+                item["size"],
+                item["file_format"]
+            )
 
-                cursor.execute("""
-                 INSERT INTO magazines (
-                     magazine_id, name, language, path, thumbnail, status, magazine_date, size, file_format
-                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                   name=VALUES(name),
-                   language=VALUES(language),
-                   path=VALUES(path),
-                   thumbnail=VALUES(thumbnail),
-                   status=VALUES(status),
-                   magazine_date=VALUES(magazine_date),
-                   size=VALUES(size),
-                   file_format=VALUES(file_format)
-                """, magazine_data) 
+            cursor.execute("""
+                INSERT INTO magazines (
+                    id, name, language, path, thumbnail, status, magazine_date, size, file_format
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                name=VALUES(name),
+                language=VALUES(language),
+                path=VALUES(path),
+                thumbnail=VALUES(thumbnail),
+                status=VALUES(status),
+                magazine_date=VALUES(magazine_date),
+                size=VALUES(size),
+                file_format=VALUES(file_format)
+            """, magazine_data) 
+            
 
-                output.append({
-                    "magazine_id": item["id"],
-                    "message": f"{item['name']} synced successfully"
-                })
+            output.append({
+                "magazine_id": item["id"],
+                "message": f"{item['name']} synced successfully"
+            })
 
         # ===== Copy magazines and magazine_thumbnails folders =====
         try:

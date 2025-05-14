@@ -22,7 +22,7 @@ routes = [
     "/syncAdvertisement",
     "/sync-music-playlists",
     "/sync-music",
-    "/syncAnalytics",
+    # "/syncAnalytics",
     "/syncTvshows",
     "/syncMagazine",
     "/sync-games",

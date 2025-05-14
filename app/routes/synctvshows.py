@@ -67,7 +67,11 @@ def sync_tv_shows():
         cursor = db.cursor()
         tv_data = read_db('tvshows')
         for item in tv_data:
-            ad_id = item["ad_id"] if item["ad_id"] not in [None, "", "0"] else None
+            # ad_id = item["ad_id"] if item["ad_id"] not in [None, "", "0"] else None
+            if(item["ad_id"] == "NULL"):
+                ad_id = None
+            else:
+                ad_id = item["ad_id"]
 
             if item["is_deleted"] == "1":
                 try:
