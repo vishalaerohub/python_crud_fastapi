@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def sync_magazine():
     output = []
     usb_path = find_usb_mount_path()
+
     if not usb_path:
         logger.error("❌ USB path not found.")
         raise HTTPException(status_code=400, detail="USB path not found")
@@ -24,10 +25,10 @@ def sync_magazine():
     try:
         cursor = db.cursor()
         magazine_data = read_db('magazines')
-
+        
 
         for item in magazine_data:
-            if int(item["status"]) == 1:
+            #if int(item["status"]) == 1:
 
                 magazine_data = (
                     item["id"],
@@ -43,7 +44,7 @@ def sync_magazine():
 
                 cursor.execute("""
                  INSERT INTO magazines (
-                     magazine_id, name, language, path, thumbnail, status, magazine_date, size, file_format
+                    id, name, language, path, thumbnail, status, magazine_date, size, file_format
                  ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                    name=VALUES(name),
@@ -55,6 +56,7 @@ def sync_magazine():
                    size=VALUES(size),
                    file_format=VALUES(file_format)
                 """, magazine_data) 
+        
 
                 output.append({
                     "magazine_id": item["id"],
